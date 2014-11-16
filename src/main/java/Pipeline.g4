@@ -1,29 +1,30 @@
 grammar Pipeline;
 
-prog: command | pipeline  ;
+prog : (pipeline | command)+ ;
 
-pipeline    : command PIPE pipeline
-            | command PIPE command
-            ;
+pipeline : command PIPE pipeline
+         | command PIPE command
+         ;
 
-command : token arguments*
+command : expr arguments* SEP*
         ;
 
-arguments   : token+
-            ;
+arguments : expr+
+          ;
 
-token   : variable_subst
-        | command_subst
-        | WORD
-        ;
+expr : variable_subst
+     | command_subst
+     | WORD
+     ;
 
-variable_subst  : '${' WORD '}'
-                ;
+variable_subst : '${' WORD '}'
+               ;
 
-command_subst   : '$(' (pipeline | command) ')'
-                ;
+command_subst : '$(' (pipeline | command) ')'
+              ;
 
 PIPE    : '|' ;
-WORD    : [a-zA-Z0-9]+ ;
+SEP     : ';' ;
+WORD    : [a-zA-Z0-9]+ ; // TODO: This should be "everything except special characters"
 WS      : [ \t]+ -> skip ;
 NEWLINE : '\r'? '\n' ;

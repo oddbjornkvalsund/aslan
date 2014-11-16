@@ -1,1 +1,1 @@
-ls foo bar | grep x | grep ${FOO} | $(cat goook | grep hh)
+klok; ls | grep ${IFS}; bar;
