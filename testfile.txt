@@ -1,1 +1,1 @@
-klok; ls | grep ${IFS}; bar;
+ls foo bar | grep "x $(X)"
