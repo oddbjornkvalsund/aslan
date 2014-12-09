@@ -1,17 +1,22 @@
 lexer grammar IslandLexer;
 
+tokens { DOLLAR, CS_START, VS_START }
+
 STR_START   : '\"'  -> pushMode(STR)            ;
+DEF_CS_START : '$(' -> type(CS_START), pushMode(CS);
+DEF_VS_START : '${' -> type(VS_START), pushMode(VS);
 PIPE        : '|'           ;
-ARG         : ~["|\t ]+ ;
+ARG         : ~["|$\t ]+ ;
 WS          : [\t ]+ -> skip ;
+DEF_DOLLAR      : '$' -> type(DOLLAR)          ;
 
 // Default mode, space is preserved except around literal dollar symbols
 mode STR;
 STR_STOP    : '\"'  -> popMode   ;
-CS_START    : '$('  -> pushMode(CS)             ;
-VS_START    : '${'  -> pushMode(VS)             ;
+STR_CS_START    : '$('  -> type(CS_START), pushMode(CS)             ;
+STR_VS_START    : '${'  -> type(VS_START), pushMode(VS)             ;
 TEXT        : ~["$]+        ;
-DOLLAR      : '$'           ;
+STR_DOLLAR      : '$' -> type(DOLLAR)          ;
 
 // CS: Command substitution
 mode CS;

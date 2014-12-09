@@ -1,1 +1,1 @@
-echo foo | grep bar "Goog le" "${X} $(echo foo bar)" ${Y}
+echo foo | grep bar "Goog le" "${X} $(echo foo bar)" ${VARIABLE} $(command gooz gaaz)
