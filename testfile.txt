@@ -1,1 +1,1 @@
-"${XX}a b c d $(FOO) ${BAR}"
+echo foo | grep "${XX}a b c d $(echo foo bar) ${BAR} $ $$$ 4$a$"

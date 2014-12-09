@@ -1,17 +1,25 @@
 lexer grammar IslandLexer;
 
-// Default mode, space is preserved
-CS_START    : '$('  -> mode(CS)             ;
-VS_START    : '${'  -> mode(VS)             ;
-TEXT        : ~'$'+        ;
+STR_START   : '\"'  -> pushMode(STR)            ;
+PIPE        : '|'           ;
+ARG         : ~["|\t ]+ ;
+WS          : [\t ]+ -> skip ;
+
+// Default mode, space is preserved except around literal dollar symbols
+mode STR;
+STR_STOP    : '\"'  -> popMode   ;
+CS_START    : '$('  -> pushMode(CS)             ;
+VS_START    : '${'  -> pushMode(VS)             ;
+TEXT        : ~["$]+        ;
+DOLLAR      : '$'           ;
 
 // CS: Command substitution
 mode CS;
-CS_STOP     : ')'   -> mode(DEFAULT_MODE)   ;
-CS_WS       : [\t ]+ -> skip                ;
-CS_TEXT     : ~')'+                         ;
+CS_STOP     : ')'   -> popMode      ;
+CS_TEXT     : ~[)\t ]+                 ;
+CS_WS       : [\t ]+ -> skip        ;
 
 // VS: Variable substitution
 mode VS;
-VS_STOP     : '}'   -> mode(DEFAULT_MODE)   ;
+VS_STOP     : '}'   -> popMode   ;
 VS_VARIABLE : [A-Z]+                        ;
