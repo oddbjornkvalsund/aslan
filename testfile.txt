@@ -1,1 +1,1 @@
-ls foo bar | grep "x $(X)"
+"${XX}a b c d $(FOO) ${BAR}"
