@@ -1,1 +1,1 @@
-echo foo | grep "${XX}a b c d $(echo foo bar) ${BAR} $ $$$ 4$a$"
+echo foo | grep bar "Goog le" "${X} $(echo foo bar)" ${Y}

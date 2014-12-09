@@ -22,4 +22,4 @@ CS_WS       : [\t ]+ -> skip        ;
 // VS: Variable substitution
 mode VS;
 VS_STOP     : '}'   -> popMode   ;
-VS_VARIABLE : [A-Z]+                        ;
+VS_VARIABLE : [A-Z]+             ;
