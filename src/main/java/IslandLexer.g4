@@ -1,6 +1,6 @@
 lexer grammar IslandLexer;
 
-tokens { DOLLAR, CS_START, VS_START }
+tokens { ARG, DOLLAR, CS_START, VS_START }
 
 // Default mode
 STR_START   : '\"'  -> pushMode(STR);
@@ -24,7 +24,7 @@ mode CS;
 CS_STOP     : ')' -> popMode;
 CS_CS_START : '$(' -> type(CS_START), pushMode(CS);
 CS_VS_START : '${' -> type(VS_START), pushMode(VS);
-CS_TEXT     : ~[)$\t ]+;
+CS_ARG      : ~[)$\t ]+ -> type(ARG);
 CS_DOLLAR   : '$' -> type(DOLLAR);
 CS_WS       : [\t ]+ -> skip;
 

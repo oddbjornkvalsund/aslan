@@ -1,1 +1,1 @@
-$(L1 $(L2 $(L3) constant) ${VAR} constant)
+echo $(cat foo | grep ${SOMEVAR}) | grep ${XX}
