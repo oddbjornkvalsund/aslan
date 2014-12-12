@@ -1,6 +1,6 @@
 lexer grammar IslandLexer;
 
-tokens { ARG, CS_START, DOLLAR, LT_START, PIPE, STR_START, VS_START }
+tokens { ARG, CS_START, DOLLAR, LT_START, PIPE, STR_START, VS_START, WS }
 
 // Default mode
 LT_START    : '\''  -> pushMode(LT);
@@ -9,7 +9,7 @@ CS_START    : '$(' -> pushMode(CS);
 VS_START    : '${' -> pushMode(VS);
 PIPE        : '|';
 ARG         : ~["'|$\t ]+;
-WS          : [\t ]+ -> skip;
+WS          : [\t ]+;
 DOLLAR      : '$';
 
 // LT: Literal mode, space is preserved, nothing is expanded
@@ -35,7 +35,7 @@ CS_VS_START : '${' -> type(VS_START), pushMode(VS);
 CS_PIPE     : '|' -> type(PIPE);
 CS_ARG      : ~[)'"$|\t ]+ -> type(ARG);
 CS_DOLLAR   : '$' -> type(DOLLAR);
-CS_WS       : [\t ]+ -> skip;
+CS_WS       : [\t ]+ -> type(WS);
 
 // VS: Variable substitution
 mode VS;

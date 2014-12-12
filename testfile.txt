@@ -1,1 +1,1 @@
-echo "here are some single quotes: ''''''''''''"'and here are some double quotes: """"""""""""""'
+$(foo bar | grep x) '${'$(FOO)'}'

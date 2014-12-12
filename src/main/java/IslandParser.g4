@@ -4,8 +4,10 @@ options { tokenVocab=IslandLexer; }
 
 pipeline    : cmd (pipe cmd)*;
 pipe        : PIPE;
-cmd         : arg+;
+cmd         : (args|arg|space)+;
+args        : arg arg+;
 arg         : (cs | vs | string | literal | ARG);
+space       : WS+;
 
 literal : LT_START LT_TEXT LT_STOP ;
 string  : STR_START (cs | vs | text)* STR_STOP ;
