@@ -1,1 +1,1 @@
-${HEI} $(foo bar) | echo foo bar "${XX} $(cat xx | grep myx)"
+$(L1 $(L2 $(L3) constant) ${VAR} constant)

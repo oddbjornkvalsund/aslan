@@ -22,7 +22,10 @@ STR_DOLLAR      : '$' -> type(DOLLAR);
 // CS: Command substitution
 mode CS;
 CS_STOP     : ')' -> popMode;
-CS_TEXT     : ~[)\t ]+;
+CS_CS_START : '$(' -> type(CS_START), pushMode(CS);
+CS_VS_START : '${' -> type(VS_START), pushMode(VS);
+CS_TEXT     : ~[)$\t ]+;
+CS_DOLLAR   : '$' -> type(DOLLAR);
 CS_WS       : [\t ]+ -> skip;
 
 // VS: Variable substitution
