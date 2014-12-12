@@ -1,1 +1,1 @@
-"echo $(CS1 ${VAR} $(CS2 | grep ${XX})) end" | ${X} $(XX)
+echo "outer $(cs "inner ${VS} $(foo "innerinner")")"
