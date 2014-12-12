@@ -3,12 +3,12 @@ lexer grammar IslandLexer;
 tokens { DOLLAR, CS_START, VS_START }
 
 STR_START   : '\"'  -> pushMode(STR)            ;
-DEF_CS_START : '$(' -> type(CS_START), pushMode(CS);
-DEF_VS_START : '${' -> type(VS_START), pushMode(VS);
+CS_START : '$(' -> pushMode(CS);
+VS_START : '${' -> pushMode(VS);
 PIPE        : '|'           ;
 ARG         : ~["|$\t ]+ ;
 WS          : [\t ]+ -> skip ;
-DEF_DOLLAR      : '$' -> type(DOLLAR)          ;
+DOLLAR      : '$' ;
 
 // Default mode, space is preserved except around literal dollar symbols
 mode STR;
