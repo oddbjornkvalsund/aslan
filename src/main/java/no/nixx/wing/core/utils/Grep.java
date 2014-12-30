@@ -2,27 +2,27 @@ package no.nixx.wing.core.utils;
 
 import no.nixx.wing.core.Executable;
 import no.nixx.wing.core.ExecutableMetadata;
+import no.nixx.wing.core.ExecutionContext;
 
 import java.io.*;
 import java.util.List;
-import java.util.Map;
 
 @ExecutableMetadata(name = "grep")
 public class Grep implements Executable {
     private InputStream is;
     private OutputStream os;
     private OutputStream es;
-    private Map<String, String> env;
+    private ExecutionContext context;
     private List<String> args;
 
     private String pattern;
 
     @Override
-    public void init(InputStream is, OutputStream os, OutputStream es, Map<String, String> env, List<String> args) {
+    public void init(InputStream is, OutputStream os, OutputStream es, ExecutionContext context, List<String> args) {
         this.is = is;
         this.os = os;
         this.es = es;
-        this.env = env;
+        this.context = context;
         this.args = args;
 
         if (args.size() == 1) {

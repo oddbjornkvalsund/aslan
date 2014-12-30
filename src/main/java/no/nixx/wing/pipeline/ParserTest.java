@@ -3,10 +3,7 @@ package no.nixx.wing.pipeline;
 import no.nixx.wing.antlr.PipelineLexer;
 import no.nixx.wing.antlr.PipelineParser;
 import no.nixx.wing.antlr.PipelineParserBaseListener;
-import no.nixx.wing.core.Executable;
-import no.nixx.wing.core.ExecutableLocator;
-import no.nixx.wing.core.ExecutableLocatorImpl;
-import no.nixx.wing.core.Pipe;
+import no.nixx.wing.core.*;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BufferedTokenStream;
 import org.antlr.v4.runtime.misc.NotNull;
@@ -14,16 +11,10 @@ import org.antlr.v4.runtime.misc.NotNull;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class ParserTest {
-    final Map<String, String> context = new HashMap<String, String>();
     final ExecutorService threadPool = Executors.newFixedThreadPool(10); // TODO: Hard coded pool size
     final ExecutableLocator executableLocator = new ExecutableLocatorImpl();
 
@@ -32,22 +23,21 @@ public class ParserTest {
     }
 
     public void run() {
-        context.putAll(System.getenv());
-        context.put("CWD", System.getProperty("user.dir"));// TODO: HACK
-
         final String cmd = "ls | grep t | grep o";
+
+        final ExecutionContext context = new ExecutionContextImpl();
+        context.setVariable("CWD", System.getProperty("user.dir"));
+
         final PipelineLexer lexer = new PipelineLexer(new ANTLRInputStream(cmd));
         final PipelineParser parser = new PipelineParser(new BufferedTokenStream(lexer));
-
         final PipelineListener pipelineListener = new PipelineListener();
         parser.addParseListener(pipelineListener);
         parser.pipeline();
 
         final Pipeline pipeline = pipelineListener.getPipeline();
-        substituteVariables(pipeline); // TODO: Handle "string" with vs and cs
+        substituteVariables(context, pipeline); // TODO: Handle "string" with vs and cs
         substituteCommands(pipeline); // TODO: Not implemented
-
-        execute(pipeline);
+        execute(context, pipeline);
 
         try {
             threadPool.shutdown();
@@ -57,19 +47,19 @@ public class ParserTest {
         }
     }
 
-    private void substituteVariables(Pipeline pipeline) {
+    private void substituteVariables(ExecutionContext context, Pipeline pipeline) {
         for (Command command : pipeline.getCommandsUnmodifiable()) {
             for (Argument argument : command.getArgumentsUnmodifiable()) {
                 if (argument.isVariableSubstitution()) {
-                    command.replaceArgument(argument, getExpandedVariable((VariableSubstitution) argument));
+                    command.replaceArgument(argument, getExpandedVariable(context, (VariableSubstitution) argument));
                 }
             }
         }
     }
 
-    private Argument getExpandedVariable(VariableSubstitution vs) {
-        if (context.containsKey(vs.variableName)) {
-            return new Literal(context.get(vs.variableName));
+    private Argument getExpandedVariable(ExecutionContext context, VariableSubstitution vs) {
+        if (context.isVariableSet(vs.variableName)) {
+            return new Literal(context.getVariable(vs.variableName));
         } else {
             throw new IllegalArgumentException("No such variable: " + vs.variableName);
         }
@@ -79,12 +69,10 @@ public class ParserTest {
 
     }
 
-    private void execute(Pipeline pipeline) {
+    private void execute(ExecutionContext context, Pipeline pipeline) {
         final List<Executable> executables = new ArrayList<Executable>();
 
         // TODO: Pipeline sanity checks
-
-        // TODO: References to System.in, System.out and System.err should perhaps be removed from this method
 
         final List<Command> commands = pipeline.getCommandsUnmodifiable();
         final Command first = commands.get(0);
@@ -110,7 +98,13 @@ public class ParserTest {
             }
 
             final Executable executable = executableLocator.lookupExecutable(command.getExecutableName());
-            executable.init(in, out, System.err, context, command.getArgumentsAsStrings()); // TODO: What do we do here if this fails?
+            try {
+                executable.init(in, out, System.err, context, command.getArgumentsAsStrings()); // TODO: What do we do here if this fails?
+            } catch (Throwable t) {
+                // TODO: Log the full exception
+                System.err.println(t.getMessage());
+                return;
+            }
             executables.add(executable);
         }
 
@@ -122,7 +116,9 @@ public class ParserTest {
                     try {
                         executable.run();
                     } catch (Throwable t) {
-                        throw new RuntimeException(t); // TODO: Where does this go?
+                        // TODO: Log the full exception
+                        System.err.println(t.getMessage());
+                        // Cancel all running threads
                     } finally {
                         latch.countDown();
                     }

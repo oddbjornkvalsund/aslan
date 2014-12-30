@@ -2,21 +2,21 @@ package no.nixx.wing.core.utils;
 
 import no.nixx.wing.core.Executable;
 import no.nixx.wing.core.ExecutableMetadata;
+import no.nixx.wing.core.ExecutionContext;
 
 import java.io.*;
 import java.util.List;
-import java.util.Map;
 
 @ExecutableMetadata(name = "ls")
 public class Ls implements Executable {
     private InputStream is;
     private OutputStream os;
     private OutputStream es;
-    private Map<String, String> context;
+    private ExecutionContext context;
     private List<String> args;
 
     @Override
-    public void init(InputStream is, OutputStream os, OutputStream es, Map<String, String> context, List<String> args) {
+    public void init(InputStream is, OutputStream os, OutputStream es, ExecutionContext context, List<String> args) {
         this.is = is;
         this.os = os;
         this.es = es;
@@ -28,7 +28,7 @@ public class Ls implements Executable {
     public void run() throws IOException {
         final PrintWriter pw = new PrintWriter(os);
 
-        final File currentWorkingDirectory = new File(context.get("CWD"));
+        final File currentWorkingDirectory = new File(context.getVariable("CWD"));
         if (currentWorkingDirectory.exists() && currentWorkingDirectory.isDirectory()) {
             for (String filename : currentWorkingDirectory.list()) {
                 final File file = new File(filename);
