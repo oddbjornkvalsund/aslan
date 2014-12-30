@@ -1,6 +1,6 @@
-parser grammar IslandParser;
+parser grammar PipelineParser;
 
-options { tokenVocab=IslandLexer; }
+options { tokenVocab=PipelineLexer; }
 
 pipeline    : cmd (pipe cmd)*;
 pipe        : PIPE;

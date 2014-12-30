@@ -1,10 +1,10 @@
-lexer grammar IslandLexer;
+lexer grammar PipelineLexer;
 
 tokens { ARG, CS_START, DOLLAR, LT_START, PIPE, STR_START, VS_START, WS }
 
 // Default mode
-LT_START    : '\''  -> pushMode(LT);
-STR_START   : '\"'  -> pushMode(STR);
+LT_START    : '\'' -> pushMode(LT);
+STR_START   : '\"' -> pushMode(STR);
 CS_START    : '$(' -> pushMode(CS);
 VS_START    : '${' -> pushMode(VS);
 PIPE        : '|';
@@ -40,4 +40,4 @@ CS_WS       : [\t ]+ -> type(WS);
 // VS: Variable substitution
 mode VS;
 VS_STOP     : '}' -> popMode;
-VS_VARIABLE : [A-Z0-9]+;
+VS_VARIABLE : [A-Z0-9_]+;

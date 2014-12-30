@@ -1,1 +1,1 @@
-$(foo bar | grep x) '${'$(FOO)'}'
+"HELO    X ${X} "'singlequoted with inner double quoted: ""'                    " "                   4${X}
