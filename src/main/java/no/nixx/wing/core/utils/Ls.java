@@ -26,9 +26,9 @@ public class Ls implements Executable {
 
     @Override
     public void run() throws IOException {
-        final PrintWriter pw = new PrintWriter(os);
+        final PrintWriter pw = new PrintWriter(os, true);
 
-        final File currentWorkingDirectory = new File(context.getVariable("CWD"));
+        final File currentWorkingDirectory = new File(context.getCurrentWorkingDirectory());
         if (currentWorkingDirectory.exists() && currentWorkingDirectory.isDirectory()) {
             for (String filename : currentWorkingDirectory.list()) {
                 final File file = new File(filename);
@@ -40,10 +40,6 @@ public class Ls implements Executable {
                 }
             }
         }
-
-        is.close();
-        pw.close();
-        os.close();
     }
 
     @Override

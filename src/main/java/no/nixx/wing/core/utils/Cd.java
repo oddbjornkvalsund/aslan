@@ -13,34 +13,20 @@ import java.util.List;
 
 @ExecutableMetadata(name = "cd")
 public class Cd implements Executable {
-    private InputStream is;
-    private OutputStream os;
-    private OutputStream es;
     private ExecutionContext context;
-    private List<String> args;
 
-    private Path currentWorkingDirectory;
-    private Path nextWorkingDirectory;
+    private String nextWorkingDirectory;
 
     @Override
     public void init(InputStream is, OutputStream os, OutputStream es, ExecutionContext context, List<String> args) {
-        // TODO: Parse options
-        this.is = is;
-        this.os = os;
-        this.es = es;
         this.context = context;
-        this.args = args;
 
-        if (context.isVariableSet("CWD")) {
-            currentWorkingDirectory = Paths.get(context.getVariable("CWD")).toAbsolutePath();
-        } else {
-            throw new IllegalArgumentException("Unable to determine current working directory!");
-        }
+        final String currentWorkingDirectory = context.getCurrentWorkingDirectory();
 
         if (args.size() == 1) {
-            final Path path = currentWorkingDirectory.resolve(Paths.get(args.get(0)));
+            final Path path = Paths.get(currentWorkingDirectory).resolve(Paths.get(args.get(0)));
             if (path.toFile().isDirectory()) {
-                nextWorkingDirectory = path;
+                nextWorkingDirectory = path.toString();
             } else {
                 throw new IllegalArgumentException("Not a directory: " + path.toString());
             }
@@ -51,9 +37,7 @@ public class Cd implements Executable {
 
     @Override
     public void run() throws IOException {
-        is.close();
-        os.close();
-        context.setVariable("CWD", nextWorkingDirectory.toString());
+        context.setCurrentWorkingDirectory(nextWorkingDirectory);
     }
 
     @Override

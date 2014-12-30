@@ -8,13 +8,20 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BufferedTokenStream;
 import org.antlr.v4.runtime.misc.NotNull;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class ParserTest {
+    final static InputStream DEFAULT_IN = System.in;
+    final static OutputStream DEFAULT_OUT = System.out;
+
     final ExecutorService threadPool = Executors.newFixedThreadPool(10); // TODO: Hard coded pool size
     final ExecutableLocator executableLocator = new ExecutableLocatorImpl();
 
@@ -24,9 +31,10 @@ public class ParserTest {
 
     public void run() {
         final String cmd = "ls | grep t | grep o";
+//        final String cmd = "echo foo bar          guuux                 xasxas";
 
         final ExecutionContext context = new ExecutionContextImpl();
-        context.setVariable("CWD", System.getProperty("user.dir"));
+        context.setCurrentWorkingDirectory(System.getProperty("user.dir"));
 
         final PipelineLexer lexer = new PipelineLexer(new ANTLRInputStream(cmd));
         final PipelineParser parser = new PipelineParser(new BufferedTokenStream(lexer));
@@ -70,7 +78,7 @@ public class ParserTest {
     }
 
     private void execute(ExecutionContext context, Pipeline pipeline) {
-        final List<Executable> executables = new ArrayList<Executable>();
+        final List<ExecutableWithStreams> executables = new ArrayList<ExecutableWithStreams>();
 
         // TODO: Pipeline sanity checks
 
@@ -83,14 +91,14 @@ public class ParserTest {
             final InputStream in;
             final OutputStream out;
             if (command == first && command == last) {
-                in = System.in;
-                out = System.out;
+                in = DEFAULT_IN;
+                out = DEFAULT_OUT;
             } else if (command == first) {
-                in = System.in;
+                in = DEFAULT_IN;
                 out = pipe.getSink();
             } else if (command == last) {
                 in = pipe.getSource();
-                out = System.out;
+                out = DEFAULT_OUT;
             } else {
                 in = pipe.getSource();
                 pipe = new Pipe();
@@ -99,27 +107,41 @@ public class ParserTest {
 
             final Executable executable = executableLocator.lookupExecutable(command.getExecutableName());
             try {
-                executable.init(in, out, System.err, context, command.getArgumentsAsStrings()); // TODO: What do we do here if this fails?
+                executable.init(in, out, System.err, context, command.getArgumentsAsStrings());
             } catch (Throwable t) {
                 // TODO: Log the full exception
                 System.err.println(t.getMessage());
                 return;
             }
-            executables.add(executable);
+            executables.add(new ExecutableWithStreams(executable, in, out));
         }
 
         final CountDownLatch latch = new CountDownLatch(executables.size());
-        for (final Executable executable : executables) {
+        for (final ExecutableWithStreams executableWithStreams : executables) {
             threadPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        executable.run();
+                        executableWithStreams.executable.run();
                     } catch (Throwable t) {
                         // TODO: Log the full exception
                         System.err.println(t.getMessage());
-                        // Cancel all running threads
+                        // TODO: Cancel all running threads
                     } finally {
+                        try {
+                            if (executableWithStreams.in != DEFAULT_IN) {
+                                executableWithStreams.in.close();
+                            }
+
+                            executableWithStreams.out.flush();
+
+                            if (executableWithStreams.out != DEFAULT_OUT) {
+                                executableWithStreams.out.close();
+                            }
+                        } catch (IOException e) {
+                            System.err.println("Unable to close streams: " + e.getMessage());
+                        }
+
                         latch.countDown();
                     }
                 }
@@ -131,6 +153,18 @@ public class ParserTest {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+}
+
+class ExecutableWithStreams {
+    public final Executable executable;
+    public final InputStream in;
+    public final OutputStream out;
+
+    ExecutableWithStreams(Executable executable, InputStream in, OutputStream out) {
+        this.executable = executable;
+        this.in = in;
+        this.out = out;
     }
 }
 
