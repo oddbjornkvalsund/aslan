@@ -1,6 +1,6 @@
-parser grammar PipelineParser;
+parser grammar WingPipelineParser;
 
-options { tokenVocab=PipelineLexer; }
+options { tokenVocab=WingPipelineLexer; }
 
 pipeline    : cmd (pipe cmd)*;
 pipe        : PIPE;

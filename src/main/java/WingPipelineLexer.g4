@@ -1,4 +1,4 @@
-lexer grammar PipelineLexer;
+lexer grammar WingPipelineLexer;
 
 tokens { ARG, CS_START, DOLLAR, LT_START, PIPE, STR_START, VS_START, WS }
 
