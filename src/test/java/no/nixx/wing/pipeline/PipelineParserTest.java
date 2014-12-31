@@ -1,10 +1,10 @@
 package no.nixx.wing.pipeline;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class PipelineParserTest {
 
@@ -47,12 +47,22 @@ public class PipelineParserTest {
         assertEquals(asList(new Literal("echo"), new VariableSubstitution("HOME")), echoCommand.getArgumentsUnmodifiable());
     }
 
-    @Ignore // TODO!
     @Test
     public void testParseCommandSubstitution() {
         final PipelineParser parser = new PipelineParser();
         final Pipeline pipeline = parser.parseCommand("echo $(echo foo)");
 
         assertEquals(1, pipeline.getCommandsUnmodifiable().size());
+
+        final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
+        assertEquals("echo", echoCommand.getExecutableName());
+        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
+        assertTrue(echoCommand.getArgumentsUnmodifiable().get(1) instanceof CommandSubstitution);
+
+        final CommandSubstitution cs = (CommandSubstitution) echoCommand.getArgumentsUnmodifiable().get(1);
+        final Pipeline csPipeline = cs.getPipeline();
+        final Command csEchoCommand = csPipeline.getCommandsUnmodifiable().get(0);
+        assertEquals("echo", csEchoCommand.getExecutableName());
+        assertEquals(asList("foo"), csEchoCommand.getArgumentsAsStrings());
     }
 }

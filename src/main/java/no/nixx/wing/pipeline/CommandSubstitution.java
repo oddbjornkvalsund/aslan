@@ -2,10 +2,14 @@ package no.nixx.wing.pipeline;
 
 public class CommandSubstitution extends Argument {
 
-    public final Pipeline pipeline;
+    private final Pipeline pipeline;
 
     public CommandSubstitution(Pipeline pipeline) {
         this.pipeline = pipeline;
+    }
+
+    public Pipeline getPipeline() {
+        return pipeline;
     }
 
     @Override

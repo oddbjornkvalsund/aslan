@@ -4,51 +4,64 @@ import no.nixx.wing.antlr.WingPipelineParser;
 import no.nixx.wing.antlr.WingPipelineParserBaseListener;
 import org.antlr.v4.runtime.misc.NotNull;
 
+import java.util.Stack;
+
 public class PipelineListener extends WingPipelineParserBaseListener {
 
-    final Pipeline pipeline = new Pipeline();
+    private Stack<Pipeline> pipelineStack = new Stack<>();
 
-    private Command currentCommand; // TODO: This must be a Stack<Command>
+    private Stack<Command> commandStack = new Stack<>();
 
     public Pipeline getPipeline() {
-        return pipeline;
+        if (pipelineStack.size() != 1) {
+            throw new IllegalStateException("Not balanced!");
+        }
+        return pipelineStack.pop();
+    }
+
+    private Pipeline getCurrentPipeline() {
+        return pipelineStack.peek();
+    }
+
+    private Command getCurrentCommand() {
+        return commandStack.peek();
+    }
+
+    @Override
+    public void enterPipeline(@NotNull WingPipelineParser.PipelineContext ctx) {
+        pipelineStack.push(new Pipeline());
     }
 
     @Override
     public void enterCmd(@NotNull WingPipelineParser.CmdContext ctx) {
-        currentCommand = new Command();
+        commandStack.push(new Command());
     }
 
     @Override
     public void exitCmd(@NotNull WingPipelineParser.CmdContext ctx) {
-        pipeline.addCommand(currentCommand);
+        getCurrentPipeline().addCommand(commandStack.pop());
+    }
+
+    @Override
+    public void exitCs(@NotNull WingPipelineParser.CsContext ctx) {
+        getCurrentCommand().addArgument(new CommandSubstitution(pipelineStack.pop()));
+    }
+
+    @Override
+    public void exitVs(@NotNull WingPipelineParser.VsContext ctx) {
+        getCurrentCommand().addArgument(new VariableSubstitution(ctx.VS_VARIABLE().getText()));
+    }
+
+    @Override
+    public void exitLiteral(@NotNull WingPipelineParser.LiteralContext ctx) {
+        getCurrentCommand().addArgument(new Literal(ctx.LT_TEXT().getText()));
     }
 
     @Override
     public void exitArg(@NotNull WingPipelineParser.ArgContext ctx) {
         if (ctx.ARG() != null) {
-            currentCommand.addArgument(new Literal(ctx.ARG().getText()));
+            getCurrentCommand().addArgument(new Literal(ctx.ARG().getText()));
         }
-    }
-
-    @Override
-    public void exitLiteral(@NotNull WingPipelineParser.LiteralContext ctx) {
-        currentCommand.addArgument(new Literal(ctx.LT_TEXT().getText()));
-    }
-
-    @Override
-    public void exitVs(@NotNull WingPipelineParser.VsContext ctx) {
-        currentCommand.addArgument(new VariableSubstitution(ctx.VS_VARIABLE().getText()));
-    }
-
-    @Override
-    public void enterCs(@NotNull WingPipelineParser.CsContext ctx) {
-        // TODO
-    }
-
-    @Override
-    public void exitCs(@NotNull WingPipelineParser.CsContext ctx) {
-        // TODO
     }
 
     @Override
