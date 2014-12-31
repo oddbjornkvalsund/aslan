@@ -4,28 +4,25 @@ import no.nixx.wing.core.Executable;
 import no.nixx.wing.core.ExecutableMetadata;
 import no.nixx.wing.core.ExecutionContext;
 
-import java.io.*;
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.List;
 
 @ExecutableMetadata(name = "ls")
 public class Ls implements Executable {
-    private InputStream is;
     private OutputStream os;
-    private OutputStream es;
     private ExecutionContext context;
-    private List<String> args;
 
     @Override
     public void init(InputStream is, OutputStream os, OutputStream es, ExecutionContext context, List<String> args) {
-        this.is = is;
         this.os = os;
-        this.es = es;
         this.context = context;
-        this.args = args;
     }
 
     @Override
-    public void run() throws IOException {
+    public void run() {
         final PrintWriter pw = new PrintWriter(os, true);
 
         final File currentWorkingDirectory = new File(context.getCurrentWorkingDirectory());

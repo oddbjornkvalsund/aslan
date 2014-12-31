@@ -4,7 +4,9 @@ import no.nixx.wing.core.Executable;
 import no.nixx.wing.core.ExecutableMetadata;
 import no.nixx.wing.core.ExecutionContext;
 
-import java.io.*;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.List;
 
@@ -21,7 +23,7 @@ public class Echo implements Executable {
     }
 
     @Override
-    public void run() throws IOException {
+    public void run() {
         final Iterator<String> iterator = args.iterator();
         while(iterator.hasNext()) {
             writer.print(iterator.next());

@@ -7,6 +7,8 @@ import no.nixx.wing.core.*;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BufferedTokenStream;
 import org.antlr.v4.runtime.misc.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,6 +21,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class ParserTest {
+    final static Logger logger = LoggerFactory.getLogger(ParserTest.class);
+
     final static InputStream DEFAULT_IN = System.in;
     final static OutputStream DEFAULT_OUT = System.out;
 
@@ -30,19 +34,11 @@ public class ParserTest {
     }
 
     public void run() {
-        final String cmd = "ls | grep t | grep o";
-//        final String cmd = "echo foo bar          guuux                 xasxas";
-
         final ExecutionContext context = new ExecutionContextImpl();
         context.setCurrentWorkingDirectory(System.getProperty("user.dir"));
 
-        final PipelineLexer lexer = new PipelineLexer(new ANTLRInputStream(cmd));
-        final PipelineParser parser = new PipelineParser(new BufferedTokenStream(lexer));
-        final PipelineListener pipelineListener = new PipelineListener();
-        parser.addParseListener(pipelineListener);
-        parser.pipeline();
-
-        final Pipeline pipeline = pipelineListener.getPipeline();
+        final String cmd = "ls | failwheninit | grep i";
+        final Pipeline pipeline = parseCommand(cmd);
         substituteVariables(context, pipeline); // TODO: Handle "string" with vs and cs
         substituteCommands(pipeline); // TODO: Not implemented
         execute(context, pipeline);
@@ -53,6 +49,16 @@ public class ParserTest {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Pipeline parseCommand(String cmd) {
+        final PipelineLexer lexer = new PipelineLexer(new ANTLRInputStream(cmd));
+        final PipelineParser parser = new PipelineParser(new BufferedTokenStream(lexer));
+        final PipelineListener pipelineListener = new PipelineListener();
+        parser.addParseListener(pipelineListener);
+        parser.pipeline();
+
+        return pipelineListener.getPipeline();
     }
 
     private void substituteVariables(ExecutionContext context, Pipeline pipeline) {
@@ -109,8 +115,9 @@ public class ParserTest {
             try {
                 executable.init(in, out, System.err, context, command.getArgumentsAsStrings());
             } catch (Throwable t) {
-                // TODO: Log the full exception
-                System.err.println(t.getMessage());
+                // TODO: Direct logging output to logfile
+                logger.error(t.getMessage(), t);
+                System.err.println(getExecutableName(executable) + ": " + t.getMessage());
                 return;
             }
             executables.add(new ExecutableWithStreams(executable, in, out));
@@ -121,12 +128,14 @@ public class ParserTest {
             threadPool.execute(new Runnable() {
                 @Override
                 public void run() {
+                    final Executable executable = executableWithStreams.executable;
+                    final String executableName = getExecutableName(executable);
                     try {
-                        executableWithStreams.executable.run();
+                        executable.run();
                     } catch (Throwable t) {
-                        // TODO: Log the full exception
-                        System.err.println(t.getMessage());
-                        // TODO: Cancel all running threads
+                        // TODO: Direct logging output to logfile
+                        logger.error(t.getMessage(), t);
+                        System.err.println(executableName + ": " + t.getMessage());
                     } finally {
                         try {
                             if (executableWithStreams.in != DEFAULT_IN) {
@@ -153,6 +162,14 @@ public class ParserTest {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+
+        // TODO: Consider setting the EXITSTATUS and PIPESTATUS variables here
+        // (ref. http://unix.stackexchange.com/questions/14270/get-exit-status-of-process-thats-piped-to-another)
+    }
+
+    private String getExecutableName(Executable executable) {
+        final ExecutableMetadata metadata = executable.getClass().getAnnotation(ExecutableMetadata.class);
+        return metadata.name();
     }
 }
 

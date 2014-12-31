@@ -4,7 +4,6 @@ import no.nixx.wing.core.Executable;
 import no.nixx.wing.core.ExecutableMetadata;
 import no.nixx.wing.core.ExecutionContext;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
@@ -36,7 +35,7 @@ public class Cd implements Executable {
     }
 
     @Override
-    public void run() throws IOException {
+    public void run() {
         context.setCurrentWorkingDirectory(nextWorkingDirectory);
     }
 

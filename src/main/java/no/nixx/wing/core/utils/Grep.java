@@ -27,19 +27,23 @@ public class Grep implements Executable {
     }
 
     @Override
-    public void run() throws IOException {
+    public void run() {
         final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is));
         final PrintWriter pw = new PrintWriter(os, true);
 
-        while (true) {
-            final String line = bufferedReader.readLine();
-            if (line == null) {
-                break;
-            }
+        try {
+            while (true) {
+                final String line = bufferedReader.readLine();
+                if (line == null) {
+                    break;
+                }
 
-            if (line.contains(pattern)) { // TODO: REGEX
-                pw.println(line);
+                if (line.contains(pattern)) { // TODO: REGEX
+                    pw.println(line);
+                }
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

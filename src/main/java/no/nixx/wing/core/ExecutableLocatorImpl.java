@@ -1,9 +1,6 @@
 package no.nixx.wing.core;
 
-import no.nixx.wing.core.utils.Cd;
-import no.nixx.wing.core.utils.Echo;
-import no.nixx.wing.core.utils.Grep;
-import no.nixx.wing.core.utils.Ls;
+import no.nixx.wing.core.utils.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,6 +13,8 @@ public class ExecutableLocatorImpl implements ExecutableLocator {
             put("ls", Ls.class);
             put("grep", Grep.class);
             put("echo", Echo.class);
+            put("failwhenrun", FailWhenRun.class);
+            put("failwheninit", FailWhenInit.class);
         }
     };
 
