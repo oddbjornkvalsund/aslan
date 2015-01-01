@@ -26,33 +26,55 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         this.executableLocator = executableLocator;
         this.defaultInputStream = defaultInputStream;
         this.defaultOutputStream = defaultOutputStream;
-        this.defaultErrorStream =new PrintStream(defaultErrorStream);
+        this.defaultErrorStream = new PrintStream(defaultErrorStream);
     }
 
     public void execute(ExecutionContext context, Pipeline pipeline) {
-        substituteVariables(context, pipeline); // TODO: Handle "string" with vs and cs and handle vs within nested pipelines
-        substituteCommands(context, pipeline); // TODO: Handle "string" with vs and cs and handle vs within nested pipelines
-        executeNAMETODO(context, pipeline, defaultInputStream, defaultOutputStream);
+        substituteVariables(context, pipeline);
+        substituteCommands(context, pipeline);
+        executePipeline(context, pipeline, defaultInputStream, defaultOutputStream);
     }
 
     private void substituteVariables(ExecutionContext context, Pipeline pipeline) {
         for (Command command : pipeline.getCommandsUnmodifiable()) {
             for (Argument argument : command.getArgumentsUnmodifiable()) {
-                if (argument.isVariableSubstitution()) {
-                    command.replaceArgument(argument, getExpandedVariable(context, (VariableSubstitution) argument));
-                } else if (argument.isCommandSubstitution()) {
+                if (argument.isCommandSubstitution()) {
                     substituteVariables(context, ((CommandSubstitution) argument).getPipeline());
+                } else if (argument.isVariableSubstitution()) {
+                    command.replaceArgument(argument, getExpandedVariable(context, (VariableSubstitution) argument));
+                } else if (argument.isQuotedString()) {
+                    command.replaceArgument(argument, getQuotedStringWithExpandedVariables(context, (QuotedString) argument));
                 }
             }
         }
     }
 
-    private Argument getExpandedVariable(ExecutionContext context, VariableSubstitution vs) {
+    private Literal getExpandedVariable(ExecutionContext context, VariableSubstitution vs) {
         if (context.isVariableSet(vs.variableName)) {
             return new Literal(context.getVariable(vs.variableName));
         } else {
             throw new IllegalArgumentException("No such variable: " + vs.variableName);
         }
+    }
+
+    private QuotedString getQuotedStringWithExpandedVariables(ExecutionContext context, QuotedString quotedString) {
+        int offset = 0;
+        final StringBuilder sb = new StringBuilder(quotedString.getText());
+        final QuotedString expandedQuotedString = new QuotedString();
+        for (QuotedString.QuotedStringComponent component : quotedString.getComponentsUnmodifiable()) {
+            if (component.argument.isVariableSubstitution()) {
+                final VariableSubstitution vs = (VariableSubstitution) component.argument;
+                final Literal expandedVariable = getExpandedVariable(context, vs);
+                sb.insert(component.position + offset, expandedVariable.text);
+                offset += expandedVariable.text.length();
+            } else {
+                expandedQuotedString.addComponent(component.position + offset, component.argument);
+            }
+        }
+
+        expandedQuotedString.setText(sb.toString());
+
+        return expandedQuotedString;
     }
 
     private void substituteCommands(ExecutionContext context, Pipeline pipeline) {
@@ -62,20 +84,42 @@ public class PipelineExecutorImpl implements PipelineExecutor {
                     final CommandSubstitution cs = (CommandSubstitution) argument;
                     substituteCommands(context, cs.getPipeline());
                     command.replaceArgument(argument, getExpandedCommand(context, cs.getPipeline()));
+                } else if(argument.isQuotedString()) {
+                    final QuotedString quotedString = (QuotedString) argument;
+                    command.replaceArgument(argument, getQuotedStringWithExpandedCommands(context, quotedString));
                 }
             }
         }
     }
 
-    private Argument getExpandedCommand(ExecutionContext context, Pipeline pipeline) {
+    private Literal getExpandedCommand(ExecutionContext context, Pipeline pipeline) {
         final InputStream in = new ByteArrayInputStream(new byte[0]);
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        executeNAMETODO(context, pipeline, in, out);
+        executePipeline(context, pipeline, in, out);
 
         return new Literal(removeTrailingNewlines(out.toString()));
     }
 
-    private void executeNAMETODO(ExecutionContext context, Pipeline pipeline, InputStream outerInputStream, OutputStream outerOutputStream) {
+    private Literal getQuotedStringWithExpandedCommands(ExecutionContext context, QuotedString quotedString) {
+        int offset = 0;
+        final StringBuilder sb = new StringBuilder(quotedString.getText());
+        for (QuotedString.QuotedStringComponent component : quotedString.getComponentsUnmodifiable()) {
+            if (component.argument.isCommandSubstitution()) {
+                final CommandSubstitution cs = (CommandSubstitution) component.argument;
+                substituteVariables(context, cs.getPipeline());
+                substituteCommands(context, cs.getPipeline());
+                final Literal expandedVariable = getExpandedCommand(context, cs.getPipeline());
+                sb.insert(component.position + offset, expandedVariable.text);
+                offset += expandedVariable.text.length();
+            } else {
+                throw new IllegalStateException("No QuotedStringComponents other than CommandSubstitution expected at this point: " + component.argument);
+            }
+        }
+
+        return new Literal(sb.toString());
+    }
+
+    private void executePipeline(ExecutionContext context, Pipeline pipeline, InputStream outerInputStream, OutputStream outerOutputStream) {
         final List<ExecutableWithStreams> executables = new ArrayList<>();
 
         // TODO: Pipeline sanity checks

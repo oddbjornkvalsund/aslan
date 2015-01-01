@@ -5,6 +5,8 @@ import no.nixx.wing.antlr.WingPipelineParserBaseListener;
 import no.nixx.wing.pipeline.model.*;
 import org.antlr.v4.runtime.misc.NotNull;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Stack;
 
 public class PipelineListener extends WingPipelineParserBaseListener {
@@ -12,6 +14,10 @@ public class PipelineListener extends WingPipelineParserBaseListener {
     private Stack<Pipeline> pipelineStack = new Stack<>();
 
     private Stack<Command> commandStack = new Stack<>();
+
+    private Set<Command> commandsCurrentlyInQuotedString = new HashSet<>();
+
+    private QuotedString quotedString;
 
     public Pipeline getPipeline() {
         if (pipelineStack.size() != 1) {
@@ -45,12 +51,22 @@ public class PipelineListener extends WingPipelineParserBaseListener {
 
     @Override
     public void exitCs(@NotNull WingPipelineParser.CsContext ctx) {
-        getCurrentCommand().addArgument(new CommandSubstitution(pipelineStack.pop()));
+        final CommandSubstitution cs = new CommandSubstitution(pipelineStack.pop());
+        if (inQuotedString()) {
+            quotedString.addComponent(cs);
+        } else {
+            getCurrentCommand().addArgument(cs);
+        }
     }
 
     @Override
     public void exitVs(@NotNull WingPipelineParser.VsContext ctx) {
-        getCurrentCommand().addArgument(new VariableSubstitution(ctx.VS_VARIABLE().getText()));
+        final VariableSubstitution vs = new VariableSubstitution(ctx.VS_VARIABLE().getText());
+        if (inQuotedString()) {
+            quotedString.addComponent(vs);
+        } else {
+            getCurrentCommand().addArgument(vs);
+        }
     }
 
     @Override
@@ -65,13 +81,27 @@ public class PipelineListener extends WingPipelineParserBaseListener {
         }
     }
 
+    // No support for nested quoted strings at this point
+
     @Override
-    public void enterText(@NotNull WingPipelineParser.TextContext ctx) {
-        // TODO
+    public void enterString(@NotNull WingPipelineParser.StringContext ctx) {
+        quotedString = new QuotedString();
+        commandsCurrentlyInQuotedString.add(getCurrentCommand());
+    }
+
+    @Override
+    public void exitString(@NotNull WingPipelineParser.StringContext ctx) {
+        getCurrentCommand().addArgument(quotedString);
+        quotedString = null;
+        commandsCurrentlyInQuotedString.remove(getCurrentCommand());
     }
 
     @Override
     public void exitText(@NotNull WingPipelineParser.TextContext ctx) {
-        // TODO
+        quotedString.appendText(ctx.getText()); // TODO: Not sure if this is right...
+    }
+
+    private boolean inQuotedString() {
+        return commandsCurrentlyInQuotedString.contains(getCurrentCommand());
     }
 }

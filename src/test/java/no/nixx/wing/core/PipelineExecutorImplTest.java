@@ -66,6 +66,19 @@ public class PipelineExecutorImplTest {
     }
 
     @Test
+    public void testVariableSubstitutionInQuotedString() {
+        final InputStream in = getEmptyInputStream();
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
+        final ExecutionContextImpl executionContext = new ExecutionContextImpl();
+        executionContext.setVariable("A", "aaa");
+        executionContext.setVariable("B", "bbb");
+        executionContext.setVariable("C", "ccc");
+        executor.execute(executionContext, parser.parseCommand("echo \"A: ${A}, B: ${B}, C: ${C}\""));
+        assertEquals(format("A: aaa, B: bbb, C: ccc%n"), out.toString());
+    }
+
+    @Test
     public void testCommandSubstitution() {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -73,6 +86,29 @@ public class PipelineExecutorImplTest {
         executor.execute(new ExecutionContextImpl(), parser.parseCommand("echo $(echo foo | grep o | grep o)"));
 
         assertEquals(format("foo%n"), out.toString());
+    }
+
+    @Test
+    public void testCommandSubstitutionInQuotedString() {
+        final InputStream in = getEmptyInputStream();
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
+        final ExecutionContextImpl executionContext = new ExecutionContextImpl();
+        executor.execute(executionContext, parser.parseCommand("echo \"echo foo outputs: $(echo foo)\""));
+
+        assertEquals(format("echo foo outputs: foo%n"), out.toString());
+    }
+
+    @Test
+    public void testComplexQuotedString() {
+        final InputStream in = getEmptyInputStream();
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
+        final ExecutionContextImpl executionContext = new ExecutionContextImpl();
+        executionContext.setVariable("O", "o");
+        executor.execute(executionContext, parser.parseCommand("echo \"echo foo outputs: $(echo foo | grep $(echo ${O}))\""));
+
+        assertEquals(format("echo foo outputs: foo%n"), out.toString());
     }
 
     @Test

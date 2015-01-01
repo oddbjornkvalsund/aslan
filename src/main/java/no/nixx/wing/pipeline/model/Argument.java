@@ -6,6 +6,10 @@ public abstract class Argument {
         return false;
     }
 
+    public boolean isQuotedString() {
+        return false;
+    }
+
     public boolean isCommandSubstitution() {
         return false;
     }
