@@ -82,6 +82,7 @@ public class PipelineExecutorImpl implements PipelineExecutor {
             for (Argument argument : command.getArgumentsUnmodifiable()) {
                 if (argument.isCommandSubstitution()) {
                     final CommandSubstitution cs = (CommandSubstitution) argument;
+                    substituteVariables(context, cs.getPipeline());
                     substituteCommands(context, cs.getPipeline());
                     command.replaceArgument(argument, getExpandedCommand(context, cs.getPipeline()));
                 } else if(argument.isQuotedString()) {
