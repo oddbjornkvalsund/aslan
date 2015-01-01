@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutorService;
 
 public class PipelineExecutorImpl implements PipelineExecutor {
 
-    final static Logger logger = LoggerFactory.getLogger(PipelineExecutorImpl.class);
+    final Logger logger = LoggerFactory.getLogger(PipelineExecutorImpl.class);
 
     final ExecutorService threadPool;
     final ExecutableLocator executableLocator;
@@ -21,12 +21,12 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     final OutputStream defaultOutputStream;
     final PrintStream defaultErrorStream;
 
-    public PipelineExecutorImpl(ExecutorService threadPool, ExecutableLocator executableLocator, InputStream defaultInputStream, OutputStream defaultOutputStream, PrintStream defaultErrorStream) {
+    public PipelineExecutorImpl(ExecutorService threadPool, ExecutableLocator executableLocator, InputStream defaultInputStream, OutputStream defaultOutputStream, OutputStream defaultErrorStream) {
         this.threadPool = threadPool;
         this.executableLocator = executableLocator;
         this.defaultInputStream = defaultInputStream;
         this.defaultOutputStream = defaultOutputStream;
-        this.defaultErrorStream = defaultErrorStream;
+        this.defaultErrorStream =new PrintStream(defaultErrorStream);
     }
 
     public void execute(ExecutionContext context, Pipeline pipeline) {
@@ -72,14 +72,7 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         executeNAMETODO(context, pipeline, in, out);
 
-        // TODO: Find out how to handle newlines (and especially trailing newlines) in output from command
-
-        return new Literal(out.toString());
-    }
-
-    private String getExecutableName(Executable executable) {
-        final ExecutableMetadata metadata = executable.getClass().getAnnotation(ExecutableMetadata.class);
-        return metadata.name();
+        return new Literal(removeTrailingNewlines(out.toString()));
     }
 
     private void executeNAMETODO(ExecutionContext context, Pipeline pipeline, InputStream outerInputStream, OutputStream outerOutputStream) {
@@ -166,6 +159,16 @@ public class PipelineExecutorImpl implements PipelineExecutor {
 
         // TODO: Consider setting the EXITSTATUS and PIPESTATUS variables here
         // (ref. http://unix.stackexchange.com/questions/14270/get-exit-status-of-process-thats-piped-to-another)
+    }
+
+    private String getExecutableName(Executable executable) {
+        final ExecutableMetadata metadata = executable.getClass().getAnnotation(ExecutableMetadata.class);
+        return metadata.name();
+    }
+
+    // Consider moving this method to separate a StringUtil class if more of these methods show up...
+    private static String removeTrailingNewlines(String string) {
+        return string.replaceAll("[\r\n]+$", "");
     }
 
     private class ExecutableWithStreams {

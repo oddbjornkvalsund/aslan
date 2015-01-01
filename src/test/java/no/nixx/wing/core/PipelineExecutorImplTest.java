@@ -3,7 +3,6 @@ package no.nixx.wing.core;
 import no.nixx.wing.pipeline.PipelineParser;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -73,18 +72,19 @@ public class PipelineExecutorImplTest {
         final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
         executor.execute(new ExecutionContextImpl(), parser.parseCommand("echo $(echo foo | grep o | grep o)"));
 
-        assertEquals(format("foo"), out.toString().replaceAll("[\r\n]", "")); // TODO: Output contains two newlines
+        assertEquals(format("foo%n"), out.toString());
     }
 
-    @Ignore
     @Test
     public void testCommandSubstitutionWithErrors() {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
+        final ByteArrayOutputStream err = new ByteArrayOutputStream();
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, err);
         executor.execute(new ExecutionContextImpl(), parser.parseCommand("echo $(echo fooooooo | failwhenrun | grep o)"));
 
-        // TODO: What should really happen when a command substitution fails?
+        // The command substitution prints 4 characters before failing. The newline is added by the first "echo"
+        assertEquals(format("fooo%n"), out.toString());
     }
 
     private ByteArrayInputStream getEmptyInputStream() {
