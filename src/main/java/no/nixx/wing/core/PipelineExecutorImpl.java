@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class PipelineExecutorImpl implements PipelineExecutor {
 
@@ -49,13 +48,6 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         executeNAMETODO(context, pipeline);
 
         // TODO: Pipeline should be immutable and substitution of variables/commands should result in a new Pipeline-instance
-
-        try {
-            threadPool.shutdown();
-            threadPool.awaitTermination(3, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private void substituteVariables(ExecutionContext context, Pipeline pipeline) {
@@ -170,16 +162,16 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         // TODO: Consider setting the EXITSTATUS and PIPESTATUS variables here
         // (ref. http://unix.stackexchange.com/questions/14270/get-exit-status-of-process-thats-piped-to-another)
     }
-}
 
-class ExecutableWithStreams {
-    public final Executable executable;
-    public final InputStream in;
-    public final OutputStream out;
+    private class ExecutableWithStreams {
+        public final Executable executable;
+        public final InputStream in;
+        public final OutputStream out;
 
-    ExecutableWithStreams(Executable executable, InputStream in, OutputStream out) {
-        this.executable = executable;
-        this.in = in;
-        this.out = out;
+        ExecutableWithStreams(Executable executable, InputStream in, OutputStream out) {
+            this.executable = executable;
+            this.in = in;
+            this.out = out;
+        }
     }
 }
