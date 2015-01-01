@@ -1,4 +1,4 @@
-package no.nixx.wing.pipeline;
+package no.nixx.wing.pipeline.model;
 
 public class VariableSubstitution extends Argument {
     public final String variableName;

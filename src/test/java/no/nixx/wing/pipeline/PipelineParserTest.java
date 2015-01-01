@@ -1,5 +1,6 @@
 package no.nixx.wing.pipeline;
 
+import no.nixx.wing.pipeline.model.*;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;

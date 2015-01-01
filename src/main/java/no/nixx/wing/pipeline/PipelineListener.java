@@ -2,6 +2,7 @@ package no.nixx.wing.pipeline;
 
 import no.nixx.wing.antlr.WingPipelineParser;
 import no.nixx.wing.antlr.WingPipelineParserBaseListener;
+import no.nixx.wing.pipeline.model.*;
 import org.antlr.v4.runtime.misc.NotNull;
 
 import java.util.Stack;

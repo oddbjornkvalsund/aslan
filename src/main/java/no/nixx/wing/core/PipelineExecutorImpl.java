@@ -1,6 +1,6 @@
 package no.nixx.wing.core;
 
-import no.nixx.wing.pipeline.*;
+import no.nixx.wing.pipeline.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,4 +1,4 @@
-package no.nixx.wing.pipeline;
+package no.nixx.wing.pipeline.model;
 
 import java.util.ArrayList;
 import java.util.List;

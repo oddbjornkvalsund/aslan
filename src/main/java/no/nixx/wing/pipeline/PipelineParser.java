@@ -2,6 +2,7 @@ package no.nixx.wing.pipeline;
 
 import no.nixx.wing.antlr.WingPipelineLexer;
 import no.nixx.wing.antlr.WingPipelineParser;
+import no.nixx.wing.pipeline.model.Pipeline;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.Interval;
 
