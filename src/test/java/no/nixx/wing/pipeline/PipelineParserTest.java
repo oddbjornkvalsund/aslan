@@ -65,4 +65,10 @@ public class PipelineParserTest {
         assertEquals("echo", csEchoCommand.getExecutableName());
         assertEquals(asList("foo"), csEchoCommand.getArgumentsAsStrings());
     }
+
+    @Test(expected = ParseException.class)
+    public void testErrorHandling() {
+        final PipelineParser parser = new PipelineParser();
+        parser.parseCommand("echo $(echo");
+    }
 }

@@ -44,7 +44,7 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     }
 
     public void execute(ExecutionContext context, Pipeline pipeline) {
-        substituteVariables(context, pipeline); // TODO: Handle "string" with vs and cs
+        substituteVariables(context, pipeline); // TODO: Handle "string" with vs and cs and handle vs within nested pipelines
         substituteCommands(pipeline); // TODO: Not implemented
         executeNAMETODO(context, pipeline);
 
@@ -56,7 +56,6 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-
     }
 
     private void substituteVariables(ExecutionContext context, Pipeline pipeline) {
