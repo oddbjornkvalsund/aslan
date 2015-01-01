@@ -4,15 +4,11 @@ import no.nixx.wing.pipeline.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class PipelineExecutorImpl implements PipelineExecutor {
 
@@ -25,15 +21,6 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     final OutputStream defaultOutputStream;
     final PrintStream defaultErrorStream;
 
-    // This is intended for testing
-    public PipelineExecutorImpl() {
-        this.threadPool = Executors.newFixedThreadPool(10);
-        this.executableLocator = new ExecutableLocatorImpl();
-        this.defaultInputStream = System.in;
-        this.defaultOutputStream = System.out;
-        this.defaultErrorStream = System.err;
-    }
-
     public PipelineExecutorImpl(ExecutorService threadPool, ExecutableLocator executableLocator, InputStream defaultInputStream, OutputStream defaultOutputStream, PrintStream defaultErrorStream) {
         this.threadPool = threadPool;
         this.executableLocator = executableLocator;
@@ -44,10 +31,8 @@ public class PipelineExecutorImpl implements PipelineExecutor {
 
     public void execute(ExecutionContext context, Pipeline pipeline) {
         substituteVariables(context, pipeline); // TODO: Handle "string" with vs and cs and handle vs within nested pipelines
-        substituteCommands(pipeline); // TODO: Not implemented
-        executeNAMETODO(context, pipeline);
-
-        // TODO: Pipeline should be immutable and substitution of variables/commands should result in a new Pipeline-instance
+        substituteCommands(context, pipeline); // TODO: Handle "string" with vs and cs and handle vs within nested pipelines
+        executeNAMETODO(context, pipeline, defaultInputStream, defaultOutputStream);
     }
 
     private void substituteVariables(ExecutionContext context, Pipeline pipeline) {
@@ -55,6 +40,8 @@ public class PipelineExecutorImpl implements PipelineExecutor {
             for (Argument argument : command.getArgumentsUnmodifiable()) {
                 if (argument.isVariableSubstitution()) {
                     command.replaceArgument(argument, getExpandedVariable(context, (VariableSubstitution) argument));
+                } else if (argument.isCommandSubstitution()) {
+                    substituteVariables(context, ((CommandSubstitution) argument).getPipeline());
                 }
             }
         }
@@ -68,8 +55,26 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         }
     }
 
-    private void substituteCommands(@SuppressWarnings("UnusedParameters") Pipeline pipeline) {
+    private void substituteCommands(ExecutionContext context, Pipeline pipeline) {
+        for (Command command : pipeline.getCommandsUnmodifiable()) {
+            for (Argument argument : command.getArgumentsUnmodifiable()) {
+                if (argument.isCommandSubstitution()) {
+                    final CommandSubstitution cs = (CommandSubstitution) argument;
+                    substituteCommands(context, cs.getPipeline());
+                    command.replaceArgument(argument, getExpandedCommand(context, cs.getPipeline()));
+                }
+            }
+        }
+    }
 
+    private Argument getExpandedCommand(ExecutionContext context, Pipeline pipeline) {
+        final InputStream in = new ByteArrayInputStream(new byte[0]);
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        executeNAMETODO(context, pipeline, in, out);
+
+        // TODO: Find out how to handle newlines (and especially trailing newlines) in output from command
+
+        return new Literal(out.toString());
     }
 
     private String getExecutableName(Executable executable) {
@@ -77,8 +82,8 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         return metadata.name();
     }
 
-    private void executeNAMETODO(ExecutionContext context, Pipeline pipeline) {
-        final List<ExecutableWithStreams> executables = new ArrayList<ExecutableWithStreams>();
+    private void executeNAMETODO(ExecutionContext context, Pipeline pipeline, InputStream outerInputStream, OutputStream outerOutputStream) {
+        final List<ExecutableWithStreams> executables = new ArrayList<>();
 
         // TODO: Pipeline sanity checks
 
@@ -91,14 +96,14 @@ public class PipelineExecutorImpl implements PipelineExecutor {
             final InputStream in;
             final OutputStream out;
             if (command == first && command == last) {
-                in = defaultInputStream;
-                out = defaultOutputStream;
+                in = outerInputStream;
+                out = outerOutputStream;
             } else if (command == first) {
-                in = defaultInputStream;
+                in = outerInputStream;
                 out = pipe.getSink();
             } else if (command == last) {
                 in = pipe.getSource();
-                out = defaultOutputStream;
+                out = outerOutputStream;
             } else {
                 in = pipe.getSource();
                 pipe = new Pipe();

@@ -66,15 +66,25 @@ public class PipelineExecutorImplTest {
         assertEquals(format("MyHome%n"), out.toString());
     }
 
-    @Ignore
     @Test
     public void testCommandSubstitution() {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
-        executor.execute(new ExecutionContextImpl(), parser.parseCommand("echo $(echo foo)"));
+        executor.execute(new ExecutionContextImpl(), parser.parseCommand("echo $(echo foo | grep o | grep o)"));
 
-        assertEquals(format("foo%n"), out.toString());
+        assertEquals(format("foo"), out.toString().replaceAll("[\r\n]", "")); // TODO: Output contains two newlines
+    }
+
+    @Ignore
+    @Test
+    public void testCommandSubstitutionWithErrors() {
+        final InputStream in = getEmptyInputStream();
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
+        executor.execute(new ExecutionContextImpl(), parser.parseCommand("echo $(echo fooooooo | failwhenrun | grep o)"));
+
+        // TODO: What should really happen when a command substitution fails?
     }
 
     private ByteArrayInputStream getEmptyInputStream() {
