@@ -1,11 +1,13 @@
 package no.nixx.wing.pipeline.model;
 
+import static no.nixx.wing.core.utils.Preconditions.notNull;
+
 public class CommandSubstitution extends Argument {
 
     private final Pipeline pipeline;
 
     public CommandSubstitution(Pipeline pipeline) {
-        this.pipeline = pipeline;
+        this.pipeline = notNull(pipeline);
     }
 
     public Pipeline getPipeline() {
@@ -15,5 +17,20 @@ public class CommandSubstitution extends Argument {
     @Override
     public boolean isCommandSubstitution() {
         return true;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof CommandSubstitution) {
+            final CommandSubstitution that = (CommandSubstitution) obj;
+            return this.pipeline.equals(that.pipeline);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return pipeline.hashCode();
     }
 }

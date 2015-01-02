@@ -47,4 +47,19 @@ public class Command {
         return unmodifiableList(arguments);
     }
 
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof Command) {
+            final Command that = (Command) obj;
+            return this.arguments.equals(that.arguments);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return arguments.hashCode();
+    }
 }

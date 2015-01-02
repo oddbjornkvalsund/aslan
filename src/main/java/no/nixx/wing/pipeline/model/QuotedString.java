@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.unmodifiableList;
+import static no.nixx.wing.core.utils.Preconditions.notNull;
 
 public class QuotedString extends Argument {
 
@@ -18,6 +19,7 @@ public class QuotedString extends Argument {
     public void setText(String text) {
         this.text.replace(0, this.text.length(), text);
     }
+
     public void appendText(String text) {
         this.text.append(text);
     }
@@ -43,6 +45,21 @@ public class QuotedString extends Argument {
         return true;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof QuotedString) {
+            final QuotedString that = (QuotedString) obj;
+            return this.text.equals(that.text) && this.components.equals(that.components);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return text.hashCode() + components.hashCode();
+    }
+
     public static class QuotedStringComponent {
 
         public final int position;
@@ -50,7 +67,7 @@ public class QuotedString extends Argument {
 
         public QuotedStringComponent(int position, Argument argument) {
             this.position = position;
-            this.argument = argument;
+            this.argument = notNull(argument);
         }
     }
 }
