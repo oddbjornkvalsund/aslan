@@ -1,4 +1,4 @@
-package no.nixx.wing.core.utils;
+package no.nixx.wing.core.executables;
 
 import no.nixx.wing.core.Executable;
 import no.nixx.wing.core.ExecutableMetadata;

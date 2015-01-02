@@ -1,6 +1,6 @@
 package no.nixx.wing.core;
 
-import no.nixx.wing.core.utils.*;
+import no.nixx.wing.core.executables.*;
 
 import java.util.HashMap;
 import java.util.Map;
