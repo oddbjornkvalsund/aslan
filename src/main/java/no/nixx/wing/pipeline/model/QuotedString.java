@@ -9,15 +9,11 @@ import static no.nixx.wing.core.utils.Preconditions.notNull;
 public class QuotedString extends Argument {
 
     private final StringBuilder text;
-    private final List<QuotedStringComponent> components;
+    private final List<Component> components;
 
     public QuotedString() {
         this.text = new StringBuilder();
         this.components = new ArrayList<>();
-    }
-
-    public void setText(String text) {
-        this.text.replace(0, this.text.length(), text);
     }
 
     public void appendText(String text) {
@@ -25,18 +21,14 @@ public class QuotedString extends Argument {
     }
 
     public void addComponent(Argument argument) {
-        this.components.add(new QuotedStringComponent(this.text.length(), argument));
-    }
-
-    public void addComponent(int position, Argument argument) {
-        this.components.add(new QuotedStringComponent(position, argument));
+        this.components.add(new Component(this.text.length(), argument));
     }
 
     public String getText() {
         return text.toString();
     }
 
-    public List<QuotedStringComponent> getComponentsUnmodifiable() {
+    public List<Component> getComponentsUnmodifiable() {
         return unmodifiableList(this.components);
     }
 
@@ -60,12 +52,12 @@ public class QuotedString extends Argument {
         return text.hashCode() + components.hashCode();
     }
 
-    public static class QuotedStringComponent {
+    public static class Component {
 
         public final int position;
         public final Argument argument;
 
-        public QuotedStringComponent(int position, Argument argument) {
+        public Component(int position, Argument argument) {
             this.position = position;
             this.argument = notNull(argument);
         }

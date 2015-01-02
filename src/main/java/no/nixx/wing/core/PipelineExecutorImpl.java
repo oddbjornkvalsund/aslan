@@ -48,7 +48,7 @@ public class PipelineExecutorImpl implements PipelineExecutor {
                     final QuotedString quotedString = (QuotedString) argument;
                     int offset = 0;
                     final StringBuilder sb = new StringBuilder(quotedString.getText());
-                    for (QuotedString.QuotedStringComponent component : quotedString.getComponentsUnmodifiable()) {
+                    for (QuotedString.Component component : quotedString.getComponentsUnmodifiable()) {
                         if (component.argument.isVariableSubstitution()) {
                             final VariableSubstitution vs = (VariableSubstitution) component.argument;
                             final Literal expandedVariable = getExpandedVariable(context, vs);

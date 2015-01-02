@@ -86,11 +86,11 @@ public class PipelineParserTest {
         final QuotedString quotedString = (QuotedString) argument;
         assertEquals("hello there ", quotedString.getText());
 
-        final List<QuotedString.QuotedStringComponent> quotedStringComponents = quotedString.getComponentsUnmodifiable();
-        assertEquals(1, quotedStringComponents.size());
-        final QuotedString.QuotedStringComponent quotedStringComponent = quotedStringComponents.get(0);
-        assertEquals(12, quotedStringComponent.position);
-        assertEquals(new VariableSubstitution("FOO"), quotedStringComponent.argument);
+        final List<QuotedString.Component> components = quotedString.getComponentsUnmodifiable();
+        assertEquals(1, components.size());
+        final QuotedString.Component component = components.get(0);
+        assertEquals(12, component.position);
+        assertEquals(new VariableSubstitution("FOO"), component.argument);
     }
 
     @Test
@@ -110,13 +110,13 @@ public class PipelineParserTest {
         final QuotedString quotedString = (QuotedString) argument;
         assertEquals("hello there ", quotedString.getText());
 
-        final List<QuotedString.QuotedStringComponent> quotedStringComponents = quotedString.getComponentsUnmodifiable();
-        assertEquals(1, quotedStringComponents.size());
-        final QuotedString.QuotedStringComponent quotedStringComponent = quotedStringComponents.get(0);
-        assertEquals(12, quotedStringComponent.position);
-        assertTrue(quotedStringComponent.argument instanceof CommandSubstitution);
+        final List<QuotedString.Component> components = quotedString.getComponentsUnmodifiable();
+        assertEquals(1, components.size());
+        final QuotedString.Component component = components.get(0);
+        assertEquals(12, component.position);
+        assertTrue(component.argument instanceof CommandSubstitution);
 
-        final CommandSubstitution cs = (CommandSubstitution) quotedStringComponent.argument;
+        final CommandSubstitution cs = (CommandSubstitution) component.argument;
         final List<Command> csCommands = cs.getPipeline().getCommandsUnmodifiable();
 
         assertEquals(1, csCommands.size());

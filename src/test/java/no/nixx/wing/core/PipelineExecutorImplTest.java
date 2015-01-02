@@ -105,9 +105,9 @@ public class PipelineExecutorImplTest {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
         final ExecutionContextImpl executionContext = new ExecutionContextImpl();
-        executor.execute(executionContext, parser.parseCommand("echo \"echo foo outputs: $(echo foo)\""));
+        executor.execute(executionContext, parser.parseCommand("echo \"echo foo outputs: $(echo foo).\""));
 
-        assertEquals(format("echo foo outputs: foo%n"), out.toString());
+        assertEquals(format("echo foo outputs: foo.%n"), out.toString());
     }
 
     @Test
