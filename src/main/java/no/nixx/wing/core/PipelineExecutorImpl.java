@@ -30,20 +30,39 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     }
 
     public void execute(ExecutionContext context, Pipeline pipeline) {
-        substituteVariables(context, pipeline);
-        substituteCommands(context, pipeline);
+        expandArguments(context, pipeline);
         executePipeline(context, pipeline, defaultInputStream, defaultOutputStream);
     }
 
-    private void substituteVariables(ExecutionContext context, Pipeline pipeline) {
+    private void expandArguments(ExecutionContext context, Pipeline pipeline) {
         for (Command command : pipeline.getCommandsUnmodifiable()) {
             for (Argument argument : command.getArgumentsUnmodifiable()) {
                 if (argument.isCommandSubstitution()) {
-                    substituteVariables(context, ((CommandSubstitution) argument).getPipeline());
+                    final CommandSubstitution cs = (CommandSubstitution) argument;
+                    expandArguments(context, cs.getPipeline());
+                    command.replaceArgument(argument, getExpandedCommand(context, cs.getPipeline()));
                 } else if (argument.isVariableSubstitution()) {
-                    command.replaceArgument(argument, getExpandedVariable(context, (VariableSubstitution) argument));
+                    final VariableSubstitution vs = (VariableSubstitution) argument;
+                    command.replaceArgument(argument, getExpandedVariable(context, vs));
                 } else if (argument.isQuotedString()) {
-                    command.replaceArgument(argument, getQuotedStringWithExpandedVariables(context, (QuotedString) argument));
+                    final QuotedString quotedString = (QuotedString) argument;
+                    int offset = 0;
+                    final StringBuilder sb = new StringBuilder(quotedString.getText());
+                    for (QuotedString.QuotedStringComponent component : quotedString.getComponentsUnmodifiable()) {
+                        if (component.argument.isVariableSubstitution()) {
+                            final VariableSubstitution vs = (VariableSubstitution) component.argument;
+                            final Literal expandedVariable = getExpandedVariable(context, vs);
+                            sb.insert(component.position + offset, expandedVariable.text);
+                            offset += expandedVariable.text.length();
+                        } else if(component.argument.isCommandSubstitution()) {
+                            final CommandSubstitution cs = (CommandSubstitution) component.argument;
+                            expandArguments(context, cs.getPipeline());
+                            final Literal expandedCommand = getExpandedCommand(context, cs.getPipeline());
+                            sb.insert(component.position + offset, expandedCommand.text);
+                            offset += expandedCommand.text.length();
+                        }
+                    }
+                    command.replaceArgument(argument, new Literal(sb.toString()));
                 }
             }
         }
@@ -57,42 +76,6 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         }
     }
 
-    private QuotedString getQuotedStringWithExpandedVariables(ExecutionContext context, QuotedString quotedString) {
-        int offset = 0;
-        final StringBuilder sb = new StringBuilder(quotedString.getText());
-        final QuotedString expandedQuotedString = new QuotedString();
-        for (QuotedString.QuotedStringComponent component : quotedString.getComponentsUnmodifiable()) {
-            if (component.argument.isVariableSubstitution()) {
-                final VariableSubstitution vs = (VariableSubstitution) component.argument;
-                final Literal expandedVariable = getExpandedVariable(context, vs);
-                sb.insert(component.position + offset, expandedVariable.text);
-                offset += expandedVariable.text.length();
-            } else {
-                expandedQuotedString.addComponent(component.position + offset, component.argument);
-            }
-        }
-
-        expandedQuotedString.setText(sb.toString());
-
-        return expandedQuotedString;
-    }
-
-    private void substituteCommands(ExecutionContext context, Pipeline pipeline) {
-        for (Command command : pipeline.getCommandsUnmodifiable()) {
-            for (Argument argument : command.getArgumentsUnmodifiable()) {
-                if (argument.isCommandSubstitution()) {
-                    final CommandSubstitution cs = (CommandSubstitution) argument;
-                    substituteVariables(context, cs.getPipeline());
-                    substituteCommands(context, cs.getPipeline());
-                    command.replaceArgument(argument, getExpandedCommand(context, cs.getPipeline()));
-                } else if(argument.isQuotedString()) {
-                    final QuotedString quotedString = (QuotedString) argument;
-                    command.replaceArgument(argument, getQuotedStringWithExpandedCommands(context, quotedString));
-                }
-            }
-        }
-    }
-
     private Literal getExpandedCommand(ExecutionContext context, Pipeline pipeline) {
         final InputStream in = new ByteArrayInputStream(new byte[0]);
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -101,31 +84,14 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         return new Literal(removeTrailingNewlines(out.toString()));
     }
 
-    private Literal getQuotedStringWithExpandedCommands(ExecutionContext context, QuotedString quotedString) {
-        int offset = 0;
-        final StringBuilder sb = new StringBuilder(quotedString.getText());
-        for (QuotedString.QuotedStringComponent component : quotedString.getComponentsUnmodifiable()) {
-            if (component.argument.isCommandSubstitution()) {
-                final CommandSubstitution cs = (CommandSubstitution) component.argument;
-                substituteVariables(context, cs.getPipeline());
-                substituteCommands(context, cs.getPipeline());
-                final Literal expandedVariable = getExpandedCommand(context, cs.getPipeline());
-                sb.insert(component.position + offset, expandedVariable.text);
-                offset += expandedVariable.text.length();
-            } else {
-                throw new IllegalStateException("No QuotedStringComponents other than CommandSubstitution expected at this point: " + component.argument);
-            }
-        }
-
-        return new Literal(sb.toString());
-    }
-
     private void executePipeline(ExecutionContext context, Pipeline pipeline, InputStream outerInputStream, OutputStream outerOutputStream) {
         final List<ExecutableWithStreams> executables = new ArrayList<>();
 
-        // TODO: Pipeline sanity checks
-
         final List<Command> commands = pipeline.getCommandsUnmodifiable();
+        if(commands.isEmpty()) {
+            return;
+        }
+
         final Command first = commands.get(0);
         final Command last = commands.get(commands.size() - 1);
 
@@ -164,34 +130,31 @@ public class PipelineExecutorImpl implements PipelineExecutor {
 
         final CountDownLatch latch = new CountDownLatch(executables.size());
         for (final ExecutableWithStreams executableWithStreams : executables) {
-            threadPool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    final Executable executable = executableWithStreams.executable;
-                    final String executableName = getExecutableName(executable);
+            threadPool.execute(() -> {
+                final Executable executable = executableWithStreams.executable;
+                final String executableName = getExecutableName(executable);
+                try {
+                    executable.run();
+                } catch (Throwable t) {
+                    // TODO: Direct logging output to logfile
+                    logger.error(t.getMessage(), t);
+                    defaultErrorStream.println(executableName + ": " + t.getMessage());
+                } finally {
                     try {
-                        executable.run();
-                    } catch (Throwable t) {
-                        // TODO: Direct logging output to logfile
-                        logger.error(t.getMessage(), t);
-                        defaultErrorStream.println(executableName + ": " + t.getMessage());
-                    } finally {
-                        try {
-                            if (executableWithStreams.in != defaultInputStream) {
-                                executableWithStreams.in.close();
-                            }
-
-                            executableWithStreams.out.flush();
-
-                            if (executableWithStreams.out != defaultOutputStream) {
-                                executableWithStreams.out.close();
-                            }
-                        } catch (IOException e) {
-                            System.err.println("Unable to close streams: " + e.getMessage());
+                        if (executableWithStreams.in != defaultInputStream) {
+                            executableWithStreams.in.close();
                         }
 
-                        latch.countDown();
+                        executableWithStreams.out.flush();
+
+                        if (executableWithStreams.out != defaultOutputStream) {
+                            executableWithStreams.out.close();
+                        }
+                    } catch (IOException e) {
+                        System.err.println("Unable to close streams: " + e.getMessage());
                     }
+
+                    latch.countDown();
                 }
             });
         }
@@ -212,7 +175,7 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     }
 
     // Consider moving this method to separate a StringUtil class if more of these methods show up...
-    private static String removeTrailingNewlines(String string) {
+    private String removeTrailingNewlines(String string) {
         return string.replaceAll("[\r\n]+$", "");
     }
 

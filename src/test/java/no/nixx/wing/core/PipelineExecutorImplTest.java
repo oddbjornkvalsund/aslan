@@ -1,6 +1,7 @@
 package no.nixx.wing.core;
 
 import no.nixx.wing.pipeline.PipelineParser;
+import no.nixx.wing.pipeline.model.Pipeline;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -31,6 +32,16 @@ public class PipelineExecutorImplTest {
     public static void shutdownThreadPool() throws Exception {
         threadPool.shutdown();
         threadPool.awaitTermination(1, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void testEmptyPipeline() {
+        final InputStream in = getEmptyInputStream();
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
+        executor.execute(new ExecutionContextImpl(), new Pipeline());
+
+        assertEquals(format(""), out.toString());
     }
 
     @Test
@@ -106,7 +117,7 @@ public class PipelineExecutorImplTest {
         final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
         final ExecutionContextImpl executionContext = new ExecutionContextImpl();
         executionContext.setVariable("O", "o");
-        executor.execute(executionContext, parser.parseCommand("echo \"echo foo outputs: $(echo foo | grep $(echo ${O}))\""));
+        executor.execute(executionContext, parser.parseCommand("echo \"echo foo outputs: $(echo $(echo foo | grep $(echo ${O})))\""));
 
         assertEquals(format("echo foo outputs: foo%n"), out.toString());
     }

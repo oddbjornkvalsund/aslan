@@ -102,6 +102,8 @@ public class PipelineListener extends WingPipelineParserBaseListener {
     }
 
     private boolean inQuotedString() {
-        return commandsCurrentlyInQuotedString.contains(getCurrentCommand());
+        // Must compare with ==, not contains()
+        // Contains() calls equals() that might return true for two commands that are equal but not the same instance
+        return commandsCurrentlyInQuotedString.stream().anyMatch((Command c) -> c == getCurrentCommand());
     }
 }
