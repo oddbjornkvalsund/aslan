@@ -21,7 +21,11 @@ public class QuotedString extends Argument {
     }
 
     public void addComponent(Argument argument) {
-        this.components.add(new Component(this.text.length(), argument));
+        if(argument.isCommandSubstitution() || argument.isVariableSubstitution()) {
+            this.components.add(new Component(this.text.length(), argument));
+        } else {
+            throw new IllegalArgumentException("Invalid argument type: " + argument);
+        }
     }
 
     public String getText() {
@@ -60,6 +64,21 @@ public class QuotedString extends Argument {
         public Component(int position, Argument argument) {
             this.position = position;
             this.argument = notNull(argument);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if(obj instanceof Component) {
+                final Component that = (Component) obj;
+                return this.position == that.position && this.argument.equals(that.argument);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return this.position + this.argument.hashCode();
         }
     }
 }

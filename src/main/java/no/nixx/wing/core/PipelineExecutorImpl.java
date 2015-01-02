@@ -49,19 +49,24 @@ public class PipelineExecutorImpl implements PipelineExecutor {
                     int offset = 0;
                     final StringBuilder sb = new StringBuilder(quotedString.getText());
                     for (QuotedString.Component component : quotedString.getComponentsUnmodifiable()) {
+                        final String expandedComponentText;
                         if (component.argument.isVariableSubstitution()) {
                             final VariableSubstitution vs = (VariableSubstitution) component.argument;
                             final Literal expandedVariable = getExpandedVariable(context, vs);
-                            sb.insert(component.position + offset, expandedVariable.text);
-                            offset += expandedVariable.text.length();
+                            expandedComponentText = expandedVariable.text;
                         } else if(component.argument.isCommandSubstitution()) {
                             final CommandSubstitution cs = (CommandSubstitution) component.argument;
                             expandArguments(context, cs.getPipeline());
                             final Literal expandedCommand = getExpandedCommand(context, cs.getPipeline());
-                            sb.insert(component.position + offset, expandedCommand.text);
-                            offset += expandedCommand.text.length();
+                            expandedComponentText = expandedCommand.text;
+                        } else {
+                            throw new IllegalStateException("Illegal component type, expected VariableSubstitution or CommandSubstitution: " + component.argument);
                         }
+
+                        sb.insert(component.position + offset, expandedComponentText);
+                        offset += expandedComponentText.length();
                     }
+
                     command.replaceArgument(argument, new Literal(sb.toString()));
                 }
             }
