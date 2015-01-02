@@ -10,6 +10,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import static java.nio.file.Files.isDirectory;
+
 @ExecutableMetadata(name = "cd")
 public class Cd implements Executable {
     private ExecutionContext context;
@@ -20,11 +22,9 @@ public class Cd implements Executable {
     public void init(InputStream is, OutputStream os, OutputStream es, ExecutionContext context, List<String> args) {
         this.context = context;
 
-        final String currentWorkingDirectory = context.getCurrentWorkingDirectory();
-
         if (args.size() == 1) {
-            final Path path = Paths.get(currentWorkingDirectory).resolve(Paths.get(args.get(0)));
-            if (path.toFile().isDirectory()) {
+            final Path path = Paths.get(context.getCurrentWorkingDirectory()).resolve(Paths.get(args.get(0)));
+            if (isDirectory(path)) {
                 nextWorkingDirectory = path.toString();
             } else {
                 throw new IllegalArgumentException("Not a directory: " + path.toString());

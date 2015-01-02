@@ -13,6 +13,7 @@ public class ExecutableLocatorImpl implements ExecutableLocator {
             put("ls", Ls.class);
             put("grep", Grep.class);
             put("echo", Echo.class);
+            put("cat", Cat.class);
             put("failwhenrun", FailWhenRun.class);
             put("failwheninit", FailWhenInit.class);
         }
