@@ -28,7 +28,7 @@ public class Ls implements Executable {
         final File currentWorkingDirectory = new File(context.getCurrentWorkingDirectory());
         if (currentWorkingDirectory.exists() && currentWorkingDirectory.isDirectory()) {
             for (String filename : currentWorkingDirectory.list()) {
-                final File file = new File(filename);
+                final File file = new File(currentWorkingDirectory, filename);
 
                 if (file.isDirectory()) {
                     pw.println(filename + File.separator);

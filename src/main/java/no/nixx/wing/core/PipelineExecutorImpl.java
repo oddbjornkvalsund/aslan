@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 
+import static no.nixx.wing.core.utils.StringUtils.removeTrailingNewlines;
+
 public class PipelineExecutorImpl implements PipelineExecutor {
 
     final Logger logger = LoggerFactory.getLogger(PipelineExecutorImpl.class);
@@ -146,14 +148,19 @@ public class PipelineExecutorImpl implements PipelineExecutor {
                     defaultErrorStream.println(executableName + ": " + t.getMessage());
                 } finally {
                     try {
-                        if (executableWithStreams.in != defaultInputStream) {
+                        if (executableWithStreams.in != System.in) {
                             executableWithStreams.in.close();
                         }
 
                         executableWithStreams.out.flush();
-
-                        if (executableWithStreams.out != defaultOutputStream) {
+                        if (executableWithStreams.out != System.out) {
                             executableWithStreams.out.close();
+                        }
+
+                        // TODO: The executable needs to get a reference to err as well
+                        defaultErrorStream.flush();
+                        if(defaultErrorStream != System.out) {
+                            defaultErrorStream.close();
                         }
                     } catch (IOException e) {
                         System.err.println("Unable to close streams: " + e.getMessage());
@@ -177,11 +184,6 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     private String getExecutableName(Executable executable) {
         final ExecutableMetadata metadata = executable.getClass().getAnnotation(ExecutableMetadata.class);
         return metadata.name();
-    }
-
-    // Consider moving this method to separate a StringUtil class if more of these methods show up...
-    private String removeTrailingNewlines(String string) {
-        return string.replaceAll("[\r\n]+$", "");
     }
 
     private class ExecutableWithStreams {
