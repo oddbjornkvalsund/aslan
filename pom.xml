@@ -3,12 +3,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>no.nixx</groupId>
-    <artifactId>wing</artifactId>
+    <artifactId>aslan</artifactId>
     <version>0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>The Wing Command Shell</name>
-    <url>http://nixx.no/wing</url>
+    <name>The Aslan Command Shell</name>
+    <url>http://nixx.no/aslan</url>
 
     <properties>
         <project.build.sourceEncoding>windows-1252</project.build.sourceEncoding>
