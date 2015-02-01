@@ -12,6 +12,8 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import no.nixx.aslan.core.ExecutableLocatorImpl;
 import no.nixx.aslan.core.PipelineExecutorImpl;
+import no.nixx.aslan.core.completion.CompletionResult;
+import no.nixx.aslan.core.completion.Completor;
 import no.nixx.aslan.pipeline.ParseException;
 import no.nixx.aslan.pipeline.PipelineParser;
 import no.nixx.aslan.pipeline.model.Pipeline;
@@ -29,8 +31,10 @@ import java.util.concurrent.Executors;
 
 import static javafx.application.Platform.runLater;
 import static javafx.scene.input.KeyCode.L;
+import static javafx.scene.input.KeyCode.TAB;
 import static javafx.scene.layout.HBox.setHgrow;
 import static javafx.scene.layout.Priority.ALWAYS;
+import static no.nixx.aslan.core.utils.StringUtils.join;
 
 public class AslanShell extends VBox {
 
@@ -115,7 +119,6 @@ public class AslanShell extends VBox {
 
         // Ref: https://community.oracle.com/thread/3538169
         if (region instanceof ScrollPane) {
-            final ScrollPane x = (ScrollPane) region;
             final URL stylesheetURL = AslanShell.class.getResource("/style.css");
             region.getStylesheets().add(stylesheetURL.toExternalForm());
         }
@@ -124,7 +127,25 @@ public class AslanShell extends VBox {
     private void handleKeyPressed(KeyEvent event) {
         if (event.isControlDown() && event.getCode().equals(L)) {
             clearConsole();
+        } else if (event.getCode().equals(TAB)) {
+            tabComplete();
+            event.consume();
         }
+    }
+
+    private void tabComplete() {
+        final String command = inputTextField.getText();
+        final int tabPosition = inputTextField.getCaretPosition();
+
+        final Completor completor = new Completor();
+        final CompletionResult result = completor.getCompletions(command, tabPosition, new ExecutableLocatorImpl());
+
+        if (!result.completionCandidates.isEmpty()) {
+            output(join(result.completionCandidates, " "));
+        }
+
+        inputTextField.setText(result.text);
+        inputTextField.positionCaret(result.tabPosition);
     }
 
     private void clearConsole() {

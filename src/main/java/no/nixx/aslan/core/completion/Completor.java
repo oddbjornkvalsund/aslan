@@ -1,5 +1,7 @@
 package no.nixx.aslan.core.completion;
 
+import no.nixx.aslan.core.Executable;
+import no.nixx.aslan.core.ExecutableLocator;
 import no.nixx.aslan.pipeline.PipelineParser;
 import no.nixx.aslan.pipeline.model.Command;
 import no.nixx.aslan.pipeline.model.Pipeline;
@@ -8,26 +10,80 @@ import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static no.nixx.aslan.core.utils.StringUtils.getCommonStartOfStrings;
 
 public class Completor {
 
-    public List<String> getCompletions(String command, int tabPosition, CompletionSpecRoot completionSpecRoot) {
-        return getCompletions(completionSpecRoot, getArguments(command, tabPosition));
+    public CompletionResult getCompletions(String command, int tabPosition, ExecutableLocator executableLocator) {
+        final String commandUpToTab = command.substring(0, tabPosition);
+        final CompletionResult emptyCompletionResult = new CompletionResult(tabPosition, command, emptyList());
+
+        final Command commandToComplete = getCommandToComplete(commandUpToTab);
+        if (commandToComplete == null) {
+            return emptyCompletionResult;
+        }
+
+        final Executable executable = executableLocator.lookupExecutable(commandToComplete.getExecutableName());
+        if (executable == null) {
+            return emptyCompletionResult;
+        }
+
+        if (executable instanceof Completable) {
+            final Completable completable = (Completable) executable;
+            final CompletionSpecRoot completionSpecRoot = completable.getCompletionSpec();
+
+            final List<String> arguments = getArguments(commandUpToTab, commandToComplete);
+            final List<String> completions = getCompletions(completionSpecRoot, arguments);
+
+            // TODO: Add quotation marks to completions containing spaces
+
+            if (completions.isEmpty()) {
+                if (isCompleteMatchWithCompleteAncestry(completionSpecRoot, arguments)) {
+                    return new CompletionResult(tabPosition + 1, command + " ", emptyList());
+                } else {
+                    return emptyCompletionResult;
+                }
+            } else {
+                return createCompletionResult(command, tabPosition, arguments.get(arguments.size() - 1), completions);
+            }
+        }
+
+        return emptyCompletionResult;
     }
 
-    private List<String> getArguments(String command, int tabPosition) {
-        final String commandUpToTab = command.substring(0, tabPosition);
+    private boolean isCompleteMatchWithCompleteAncestry(CompletionSpecRoot completionSpecRoot, List<String> arguments) {
+        if (arguments.isEmpty()) {
+            return false;
+        } else {
+            final List<CompletionSpec> completeMatchingNodes = findCompleteMatchingNodes(completionSpecRoot, arguments.get(arguments.size() - 1));
+            final List<CompletionSpec> completeMatchWithCompleteAncestry = findNodesWithCompleteAncestry(completeMatchingNodes, arguments);
+            return completeMatchWithCompleteAncestry.size() > 0;
+        }
+    }
+
+    private CompletionResult createCompletionResult(String command, int tabPosition, String argumentToComplete, List<String> completions) {
+        final boolean onlyOneCompletion = (completions.size() == 1);
+        final int idx = command.lastIndexOf(argumentToComplete);
+        final String completion = onlyOneCompletion ? (completions.get(0) + " ") : getCommonStartOfStrings(completions);
+        final String newText = command.substring(0, idx) + completion + command.substring(idx + argumentToComplete.length());
+        final int newTabPosition = tabPosition + (completion.length() - argumentToComplete.length());
+        return new CompletionResult(newTabPosition, newText, onlyOneCompletion ? emptyList() : completions);
+    }
+
+    private Command getCommandToComplete(String commandUpToTab) {
         final Pipeline pipeline;
         try {
-            // Snipping up to tabPosition means we always want the last command in the pipeline
             final PipelineParser parser = new PipelineParser();
             pipeline = parser.parseCommand(commandUpToTab);
         } catch (Exception e) {
-            return emptyList();
+            return null;
         }
 
         final List<Command> commands = pipeline.getCommandsUnmodifiable();
-        final Command commandToComplete = commands.get(commands.size() - 1);
+        return commands.get(commands.size() - 1);
+    }
+
+    private List<String> getArguments(String commandUpToTab, Command commandToComplete) {
         final List<String> arguments = commandToComplete.getArgumentsAsStrings();
         if (lastArgumentIsBlank(commandUpToTab, commandToComplete)) {
             arguments.add("");
@@ -63,15 +119,19 @@ public class Completor {
     }
 
     private List<String> findMostDeeplyNestedCompletions(String argumentToComplete, List<CompletionSpec> complectionSpecs) {
+        if (complectionSpecs.isEmpty()) {
+            return emptyList();
+        }
+
         final Map<Integer, List<String>> completionSpecsByDepth = new TreeMap<>();
         for (CompletionSpec completionSpec : complectionSpecs) {
-            final int level = getLevel(completionSpec);
+            final int depth = getDepth(completionSpec);
 
-            if (!completionSpecsByDepth.containsKey(level)) {
-                completionSpecsByDepth.put(level, new ArrayList<>());
+            if (!completionSpecsByDepth.containsKey(depth)) {
+                completionSpecsByDepth.put(depth, new ArrayList<>());
             }
 
-            completionSpecsByDepth.get(level).addAll(completionSpec.getCompletions(argumentToComplete));
+            completionSpecsByDepth.get(depth).addAll(completionSpec.getCompletions(argumentToComplete));
         }
 
         final int maxDepth = completionSpecsByDepth.keySet().stream().max(Comparator.<Integer>naturalOrder()).get();
@@ -125,11 +185,26 @@ public class Completor {
         return matches;
     }
 
-    private int getLevel(CompletionSpec completionSpec) {
+    private List<CompletionSpec> findCompleteMatchingNodes(CompletionSpec completionSpec, String argument) {
+        final ArrayList<CompletionSpec> matches = new ArrayList<>();
+
+        if (completionSpec.isCompleteMatch(argument)) {
+            matches.add(completionSpec);
+        }
+
+        for (CompletionSpec child : completionSpec.getChildren()) {
+            matches.addAll(findCompleteMatchingNodes(child, argument));
+        }
+
+        return matches;
+    }
+
+
+    private int getDepth(CompletionSpec completionSpec) {
         if (completionSpec instanceof CompletionSpecRoot) {
             return 0;
         } else {
-            return getLevel(completionSpec.getParent()) + 1;
+            return getDepth(completionSpec.getParent()) + 1;
         }
     }
 }

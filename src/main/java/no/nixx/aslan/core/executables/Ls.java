@@ -3,6 +3,9 @@ package no.nixx.aslan.core.executables;
 import no.nixx.aslan.core.Executable;
 import no.nixx.aslan.core.ExecutableMetadata;
 import no.nixx.aslan.core.ExecutionContext;
+import no.nixx.aslan.core.completion.Completable;
+import no.nixx.aslan.core.completion.CompletionSpecRoot;
+import no.nixx.aslan.core.completion.specs.KeywordCompletionSpec;
 
 import java.io.File;
 import java.io.InputStream;
@@ -11,7 +14,7 @@ import java.io.PrintWriter;
 import java.util.List;
 
 @ExecutableMetadata(name = "ls")
-public class Ls implements Executable {
+public class Ls implements Executable, Completable {
     private OutputStream os;
     private ExecutionContext context;
 
@@ -42,5 +45,17 @@ public class Ls implements Executable {
     @Override
     public int getExitStatus() {
         return 0;
+    }
+
+    @Override
+    public CompletionSpecRoot getCompletionSpec() {
+        return new CompletionSpecRoot(
+                new KeywordCompletionSpec("fileA", "fileB", "fileC", "foo", "bar") {
+                    @Override
+                    public boolean canOccurOnlyOnce() {
+                        return false;
+                    }
+                }
+        );
     }
 }
