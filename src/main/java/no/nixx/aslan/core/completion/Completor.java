@@ -4,8 +4,7 @@ import no.nixx.aslan.pipeline.PipelineParser;
 import no.nixx.aslan.pipeline.model.Command;
 import no.nixx.aslan.pipeline.model.Pipeline;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
@@ -54,44 +53,83 @@ public class Completor {
         }
 
         final String argumentToComplete = arguments.get(arguments.size() - 1);
+        final List<String> preceedingArguments = arguments.subList(0, arguments.size() - 1);
 
-        final List<CompletionSpec> partialMatches = getPartialMatchingNodes(completionSpecRoot, argumentToComplete);
-        final List<CompletionSpec> completeMatches = getCompleteMatchingParents(partialMatches, arguments);
-        final List<CompletionSpec> requiredCompleteMatches = getMatchesWhereParentRequiresArgument(completeMatches);
-        final List<CompletionSpec> result = requiredCompleteMatches.isEmpty() ? completeMatches : requiredCompleteMatches;
+        final List<CompletionSpec> partialMatchingNodes = findPartialMatchingNodes(completionSpecRoot, argumentToComplete);
+        final List<CompletionSpec> nodesWithCompleteAncestry = findNodesWithCompleteAncestry(partialMatchingNodes, arguments);
+        final List<CompletionSpec> nodesWithCorrectOccurenceCount = findNodesWithCorrectOccurenceCount(nodesWithCompleteAncestry, preceedingArguments);
 
-        return result.stream().flatMap(completionSpec -> completionSpec.getCompletions(argumentToComplete).stream()).collect(toList());
+        return findMostDeeplyNestedCompletions(argumentToComplete, nodesWithCorrectOccurenceCount);
     }
 
-    private List<CompletionSpec> getPartialMatchingNodes(CompletionSpec completionSpec, String argumentToComplete) {
-        final List<CompletionSpec> matchingNodes = new ArrayList<>();
-        if (completionSpec.isPartialMatch(argumentToComplete)) {
-            matchingNodes.add(completionSpec);
+    private List<String> findMostDeeplyNestedCompletions(String argumentToComplete, List<CompletionSpec> complectionSpecs) {
+        final Map<Integer, List<String>> completionSpecsByDepth = new TreeMap<>();
+        for (CompletionSpec completionSpec : complectionSpecs) {
+            final int level = getLevel(completionSpec);
+
+            if (!completionSpecsByDepth.containsKey(level)) {
+                completionSpecsByDepth.put(level, new ArrayList<>());
+            }
+
+            completionSpecsByDepth.get(level).addAll(completionSpec.getCompletions(argumentToComplete));
         }
 
-        for (CompletionSpec childComplectionSpec : completionSpec.getChildren()) {
-            matchingNodes.addAll(getPartialMatchingNodes(childComplectionSpec, argumentToComplete));
+        final int maxDepth = completionSpecsByDepth.keySet().stream().max(Comparator.<Integer>naturalOrder()).get();
+        return completionSpecsByDepth.get(maxDepth);
+    }
+
+    private List<CompletionSpec> findNodesWithCorrectOccurenceCount(List<CompletionSpec> completionSpecs, List<String> arguments) {
+        final List<CompletionSpec> nodesWithCorrectOccurenceCount = new ArrayList<>();
+        for (CompletionSpec completionSpec : completionSpecs) {
+            if (completionSpec.canOccurOnlyOnce() && hasCompleteAncestry(completionSpec, arguments)) {
+                continue;
+            }
+
+            nodesWithCorrectOccurenceCount.add(completionSpec);
         }
-        return matchingNodes;
+
+        return nodesWithCorrectOccurenceCount;
     }
 
-    private List<CompletionSpec> getCompleteMatchingParents(List<CompletionSpec> completionSpecs, List<String> arguments) {
-        final List<String> parentArguments = arguments.subList(0, arguments.size() - 1);
-        return completionSpecs.stream().filter(completionSpec -> isCompleteMatch(completionSpec.getParent(), parentArguments)).collect(toList());
+    private List<CompletionSpec> findNodesWithCompleteAncestry(List<CompletionSpec> completionSpecs, List<String> arguments) {
+        return completionSpecs.stream().filter(node -> hasCompleteAncestry(node.getParent(), arguments)).collect(toList());
     }
 
-    private List<CompletionSpec> getMatchesWhereParentRequiresArgument(List<CompletionSpec> completionSpecs) {
-        return completionSpecs.stream().filter(completionSpec -> completionSpec.hasParent() && completionSpec.getParent().isArgumentRequired()).collect(toList());
-    }
-
-    private boolean isCompleteMatch(CompletionSpec completionSpec, List<String> arguments) {
+    private boolean hasCompleteAncestry(CompletionSpec completionSpec, List<String> arguments) {
         if (completionSpec instanceof CompletionSpecRoot) {
             return true;
         } else if (arguments.isEmpty()) {
             return false;
         } else {
-            final String lastArgument = arguments.get(arguments.size() - 1);
-            return completionSpec.isCompleteMatch(lastArgument) && isCompleteMatch(completionSpec.getParent(), arguments.subList(0, arguments.size() - 1));
+            final String argumentToMatch = arguments.get(arguments.size() - 1);
+            final List<String> preceedingArguments = arguments.subList(0, arguments.size() - 1);
+            if (completionSpec.isCompleteMatch(argumentToMatch)) {
+                return hasCompleteAncestry(completionSpec.getParent(), preceedingArguments);
+            } else {
+                return hasCompleteAncestry(completionSpec, preceedingArguments);
+            }
+        }
+    }
+
+    private List<CompletionSpec> findPartialMatchingNodes(CompletionSpec completionSpec, String argument) {
+        final ArrayList<CompletionSpec> matches = new ArrayList<>();
+
+        if (completionSpec.isPartialMatch(argument)) {
+            matches.add(completionSpec);
+        }
+
+        for (CompletionSpec child : completionSpec.getChildren()) {
+            matches.addAll(findPartialMatchingNodes(child, argument));
+        }
+
+        return matches;
+    }
+
+    private int getLevel(CompletionSpec completionSpec) {
+        if (completionSpec instanceof CompletionSpecRoot) {
+            return 0;
+        } else {
+            return getLevel(completionSpec.getParent()) + 1;
         }
     }
 }

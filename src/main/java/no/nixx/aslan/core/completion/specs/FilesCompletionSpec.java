@@ -7,12 +7,12 @@ import java.util.List;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
-public class KeywordCompletionSpec extends CompletionSpec {
+public class FilesCompletionSpec extends CompletionSpec {
 
-    private final List<String> keywords;
+    private final List<String> files;
 
-    public KeywordCompletionSpec(String... keywords) {
-        this.keywords = asList(keywords);
+    public FilesCompletionSpec(String... files) {
+        this.files = asList(files);
     }
 
     @Override
@@ -22,18 +22,22 @@ public class KeywordCompletionSpec extends CompletionSpec {
 
     @Override
     public boolean isCompleteMatch(String argument) {
-        return keywords.contains(argument);
+        return files.contains(argument);
     }
 
     @Override
     public List<String> getCompletions(String argument) {
-        return keywords.stream().filter((s) -> s.startsWith(argument)).collect(toList());
+        return files.stream().filter((s) -> s.startsWith(argument)).collect(toList());
+    }
+
+    public boolean canOccurOnlyOnce() {
+        return false;
     }
 
     @Override
     public String toString() {
-        return "KeywordCompletionSpec{" +
-                "keywords=" + keywords +
+        return "FilesCompletionSpec{" +
+                "files=" + files +
                 '}';
     }
 }

@@ -15,11 +15,6 @@ public class OptionCompletionSpec extends CompletionSpec {
         this.name = name;
     }
 
-    public OptionCompletionSpec(String name, ArgumentRequirement argumentRequired, CompletionSpec... children) {
-        super(argumentRequired, children);
-        this.name = name;
-    }
-
     @Override
     public boolean isPartialMatch(String argument) {
         return name.startsWith(argument) && !isCompleteMatch(argument);
@@ -33,5 +28,12 @@ public class OptionCompletionSpec extends CompletionSpec {
     @Override
     public List<String> getCompletions(String argument) {
         return asList(name);
+    }
+
+    @Override
+    public String toString() {
+        return "OptionCompletionSpec{" +
+                "name='" + name + '\'' +
+                '}';
     }
 }

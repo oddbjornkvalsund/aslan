@@ -1,5 +1,6 @@
 package no.nixx.aslan.core.completion;
 
+import no.nixx.aslan.core.completion.specs.FilesCompletionSpec;
 import no.nixx.aslan.core.completion.specs.KeywordCompletionSpec;
 import no.nixx.aslan.core.completion.specs.OptionCompletionSpec;
 
@@ -10,36 +11,19 @@ import static java.util.Collections.unmodifiableList;
 
 public abstract class CompletionSpec {
 
-    private final boolean argumentRequired;
     private final List<CompletionSpec> children;
     private CompletionSpec parent;
 
     public CompletionSpec(CompletionSpec... children) {
-        this.argumentRequired = false;
         this.children = unmodifiableList(asList(children));
         for (CompletionSpec child : this.children) {
             child.setParent(this);
         }
     }
 
-    public CompletionSpec(ArgumentRequirement argumentRequired, CompletionSpec... children) {
-        this.argumentRequired = argumentRequired == ArgumentRequirement.REQUIRED;
-        this.children = unmodifiableList(asList(children));
-        for (CompletionSpec child : this.children) {
-            child.setParent(this);
-        }
-    }
-
+    // Factory methods
     public static OptionCompletionSpec option(String name, CompletionSpec... children) {
         return new OptionCompletionSpec(name, children);
-    }
-
-    public static OptionCompletionSpec option(String name, ArgumentRequirement argumentRequirement, CompletionSpec... children) {
-        return new OptionCompletionSpec(name, argumentRequirement, children);
-    }
-
-    public static CompletionSpec list(CompletionSpec... children) {
-        return null;
     }
 
     public static CompletionSpec keywords(String... keywords) {
@@ -47,42 +31,14 @@ public abstract class CompletionSpec {
     }
 
     public static CompletionSpec files() {
-        return null;
+        return new FilesCompletionSpec("fileA", "fileB", "fileC");
     }
-
-    public static CompletionSpec directories() {
-        return null;
-    }
-
-    public static CompletionSpec filesAndDirectories() {
-        return null;
-    }
-
-    public static CompletionSpec users() {
-        return null;
-    }
-
-    public static CompletionSpec hosts() {
-        return null;
-    }
-
-    // Factory methods
 
     public abstract boolean isPartialMatch(String argument);
 
     public abstract boolean isCompleteMatch(String argument);
 
     public abstract List<String> getCompletions(String argument);
-
-    public boolean isArgumentRequired() {
-        return argumentRequired;
-    }
-
-    // TODO
-
-    public boolean hasParent() {
-        return parent != null;
-    }
 
     public CompletionSpec getParent() {
         if (parent == null) {
@@ -102,9 +58,7 @@ public abstract class CompletionSpec {
         return children;
     }
 
-    public static enum ArgumentRequirement {
-        OPTIONAL,
-        REQUIRED
+    public boolean canOccurOnlyOnce() {
+        return true;
     }
-
 }
