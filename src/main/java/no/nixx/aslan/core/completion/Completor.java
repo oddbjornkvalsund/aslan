@@ -23,9 +23,15 @@ public class Completor {
             return emptyCompletionResult;
         }
 
-        final Executable executable = executableLocator.lookupExecutable(commandToComplete.getExecutableName());
+        final String executableName = commandToComplete.getExecutableName();
+        final Executable executable = executableLocator.lookupExecutable(executableName);
         if (executable == null) {
-            return emptyCompletionResult;
+            final List<String> executableCandidates = executableLocator.findExecutableCandidates(executableName);
+            if (executableCandidates.isEmpty()) {
+                return emptyCompletionResult;
+            } else {
+                return createCompletionResult(command, tabPosition, executableName, executableCandidates);
+            }
         }
 
         if (executable instanceof Completable) {
@@ -33,10 +39,12 @@ public class Completor {
             final CompletionSpecRoot completionSpecRoot = completable.getCompletionSpec();
 
             final List<String> arguments = getArguments(commandUpToTab, commandToComplete);
-            final List<String> completions = getCompletions(completionSpecRoot, arguments);
+            if (arguments.isEmpty()) {
+                return new CompletionResult(executableName.length() + 1, executableName + " ", emptyList());
+            }
 
             // TODO: Add quotation marks to completions containing spaces
-
+            final List<String> completions = getCompletions(completionSpecRoot, arguments);
             if (completions.isEmpty()) {
                 if (isCompleteMatchWithCompleteAncestry(completionSpecRoot, arguments)) {
                     return new CompletionResult(tabPosition + 1, command + " ", emptyList());
@@ -198,7 +206,6 @@ public class Completor {
 
         return matches;
     }
-
 
     private int getDepth(CompletionSpec completionSpec) {
         if (completionSpec instanceof CompletionSpecRoot) {

@@ -34,12 +34,17 @@ public class CompletorTest {
                     "remove"
             )
     );
-    @SuppressWarnings("Convert2Lambda")
+
     final ExecutableLocator executableLocator = new ExecutableLocator() {
 
         @Override
         public Executable lookupExecutable(String name) {
-            return new TestExecutable();
+            return (name.equals("git")) ? new TestExecutable() : null;
+        }
+
+        @Override
+        public List<String> findExecutableCandidates(String name) {
+            return "git".startsWith(name) ? asList("git") : Collections.<String>emptyList();
         }
 
         class TestExecutable implements Executable, Completable {
@@ -68,13 +73,11 @@ public class CompletorTest {
     public void testResult() {
         CompletionResult result;
 
-        // TODO: Support this
-//        result = completor.getCompletions("g", 1, executableLocator);
-//        assertEquals(new CompletionResult(4, "git ", Collections.<String>emptyList()), result);
+        result = completor.getCompletions("g", 1, executableLocator);
+        assertEquals(new CompletionResult(4, "git ", Collections.<String>emptyList()), result);
 
-        // TODO: Support this
-//        result = completor.getCompletions("git", 3, executableLocator);
-//        assertEquals(new CompletionResult(4, "git ", Collections.<String>emptyList()), result);
+        result = completor.getCompletions("git", 3, executableLocator);
+        assertEquals(new CompletionResult(4, "git ", Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("git ", 4, executableLocator);
         assertEquals(new CompletionResult(4, "git ", asList("add", "remove")), result);

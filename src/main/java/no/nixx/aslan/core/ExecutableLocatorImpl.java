@@ -3,7 +3,9 @@ package no.nixx.aslan.core;
 import no.nixx.aslan.core.executables.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ExecutableLocatorImpl implements ExecutableLocator {
 
@@ -29,7 +31,12 @@ public class ExecutableLocatorImpl implements ExecutableLocator {
                 throw new RuntimeException(e);
             }
         } else {
-            throw new RuntimeException("No such executable: " + name);
+            return null;
         }
+    }
+
+    @Override
+    public List<String> findExecutableCandidates(String partialName) {
+        return map.keySet().stream().filter(e -> e.startsWith(partialName)).collect(Collectors.toList());
     }
 }
