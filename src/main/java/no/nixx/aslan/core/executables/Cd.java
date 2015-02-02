@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 import static java.nio.file.Files.isDirectory;
+import static no.nixx.aslan.core.utils.ListUtils.firstOf;
 
 @ExecutableMetadata(name = "cd")
 public class Cd implements Executable {
@@ -26,7 +27,7 @@ public class Cd implements Executable {
     @Override
     public void run() {
         if (args.size() == 1) {
-            final Path path = Paths.get(context.getCurrentWorkingDirectory()).resolve(Paths.get(args.get(0))).normalize();
+            final Path path = Paths.get(context.getCurrentWorkingDirectory()).resolve(Paths.get(firstOf(args))).normalize();
             if (isDirectory(path)) {
                 context.setCurrentWorkingDirectory(path.toString());
             } else {

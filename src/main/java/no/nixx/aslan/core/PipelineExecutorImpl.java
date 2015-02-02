@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 
+import static no.nixx.aslan.core.utils.ListUtils.firstOf;
+import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 import static no.nixx.aslan.core.utils.StringUtils.removeTrailingNewlines;
 
 public class PipelineExecutorImpl implements PipelineExecutor {
@@ -99,8 +101,8 @@ public class PipelineExecutorImpl implements PipelineExecutor {
             return;
         }
 
-        final Command first = commands.get(0);
-        final Command last = commands.get(commands.size() - 1);
+        final Command first = firstOf(commands);
+        final Command last = lastOf(commands);
 
         Pipe pipe = new Pipe();
         for (Command command : commands) {

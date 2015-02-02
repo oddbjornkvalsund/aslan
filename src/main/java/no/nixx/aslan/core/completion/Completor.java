@@ -10,6 +10,7 @@ import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static no.nixx.aslan.core.utils.ListUtils.*;
 import static no.nixx.aslan.core.utils.StringUtils.getCommonStartOfStrings;
 
 public class Completor {
@@ -52,7 +53,7 @@ public class Completor {
                     return emptyCompletionResult;
                 }
             } else {
-                return createCompletionResult(command, tabPosition, arguments.get(arguments.size() - 1), completions);
+                return createCompletionResult(command, tabPosition, lastOf(arguments), completions);
             }
         }
 
@@ -63,7 +64,7 @@ public class Completor {
         if (arguments.isEmpty()) {
             return false;
         } else {
-            final List<CompletionSpec> completeMatchingNodes = findCompleteMatchingNodes(completionSpecRoot, arguments.get(arguments.size() - 1));
+            final List<CompletionSpec> completeMatchingNodes = findCompleteMatchingNodes(completionSpecRoot, lastOf(arguments));
             final List<CompletionSpec> completeMatchWithCompleteAncestry = findNodesWithCompleteAncestry(completeMatchingNodes, arguments);
             return completeMatchWithCompleteAncestry.size() > 0;
         }
@@ -72,7 +73,7 @@ public class Completor {
     private CompletionResult createCompletionResult(String command, int tabPosition, String argumentToComplete, List<String> completions) {
         final boolean onlyOneCompletion = (completions.size() == 1);
         final int idx = command.substring(0, tabPosition).lastIndexOf(argumentToComplete);
-        final String completion = onlyOneCompletion ? (completions.get(0) + " ") : getCommonStartOfStrings(completions);
+        final String completion = onlyOneCompletion ? (firstOf(completions) + " ") : getCommonStartOfStrings(completions);
         final String newText = command.substring(0, idx) + completion + command.substring(idx + argumentToComplete.length());
         final int newTabPosition = tabPosition + (completion.length() - argumentToComplete.length());
         return new CompletionResult(newTabPosition, newText, onlyOneCompletion ? emptyList() : completions);
@@ -87,8 +88,7 @@ public class Completor {
             return null;
         }
 
-        final List<Command> commands = pipeline.getCommandsUnmodifiable();
-        return commands.get(commands.size() - 1);
+        return lastOf(pipeline.getCommandsUnmodifiable());
     }
 
     private List<String> getArguments(String commandUpToTab, Command commandToComplete) {
@@ -106,7 +106,7 @@ public class Completor {
             final String executableName = commandToComplete.getExecutableName();
             return !command.endsWith(executableName);
         } else {
-            final String lastParsedArgument = arguments.get(arguments.size() - 1);
+            final String lastParsedArgument = lastOf(arguments);
             return !command.endsWith(lastParsedArgument);
         }
     }
@@ -116,8 +116,8 @@ public class Completor {
             return emptyList();
         }
 
-        final String argumentToComplete = arguments.get(arguments.size() - 1);
-        final List<String> preceedingArguments = arguments.subList(0, arguments.size() - 1);
+        final String argumentToComplete = lastOf(arguments);
+        final List<String> preceedingArguments = allButLastOf(arguments);
 
         final List<CompletionSpec> partialMatchingNodes = findPartialMatchingNodes(completionSpecRoot, argumentToComplete);
         final List<CompletionSpec> nodesWithCompleteAncestry = findNodesWithCompleteAncestry(partialMatchingNodes, arguments);
@@ -169,8 +169,8 @@ public class Completor {
         } else if (arguments.isEmpty()) {
             return false;
         } else {
-            final String argumentToMatch = arguments.get(arguments.size() - 1);
-            final List<String> preceedingArguments = arguments.subList(0, arguments.size() - 1);
+            final String argumentToMatch = lastOf(arguments);
+            final List<String> preceedingArguments = allButLastOf(arguments);
             if (completionSpec.isCompleteMatch(argumentToMatch)) {
                 return hasCompleteAncestry(completionSpec.getParent(), preceedingArguments);
             } else {
@@ -179,29 +179,23 @@ public class Completor {
         }
     }
 
-    private List<CompletionSpec> findPartialMatchingNodes(CompletionSpec completionSpec, String argument) {
-        final ArrayList<CompletionSpec> matches = new ArrayList<>();
-
-        if (completionSpec.isPartialMatch(argument)) {
-            matches.add(completionSpec);
-        }
-
-        for (CompletionSpec child : completionSpec.getChildren()) {
-            matches.addAll(findPartialMatchingNodes(child, argument));
-        }
-
-        return matches;
+    private List<CompletionSpec> findCompleteMatchingNodes(CompletionSpec completionSpec, String argument) {
+        return findMatchingNodes(completionSpec, argument, true);
     }
 
-    private List<CompletionSpec> findCompleteMatchingNodes(CompletionSpec completionSpec, String argument) {
+    private List<CompletionSpec> findPartialMatchingNodes(CompletionSpec completionSpec, String argument) {
+        return findMatchingNodes(completionSpec, argument, false);
+    }
+
+    private List<CompletionSpec> findMatchingNodes(CompletionSpec completionSpec, String argument, boolean findCompleteMatches) {
         final ArrayList<CompletionSpec> matches = new ArrayList<>();
 
-        if (completionSpec.isCompleteMatch(argument)) {
+        if (findCompleteMatches ? completionSpec.isCompleteMatch(argument) : completionSpec.isPartialMatch(argument)) {
             matches.add(completionSpec);
         }
 
         for (CompletionSpec child : completionSpec.getChildren()) {
-            matches.addAll(findCompleteMatchingNodes(child, argument));
+            matches.addAll(findCompleteMatches ? findCompleteMatchingNodes(child, argument) : findPartialMatchingNodes(child, argument));
         }
 
         return matches;

@@ -3,6 +3,8 @@ package no.nixx.aslan.core.utils;
 import java.util.Iterator;
 import java.util.List;
 
+import static no.nixx.aslan.core.utils.ListUtils.firstOf;
+
 public class StringUtils {
     public static String removeTrailingNewlines(String string) {
         return string.replaceAll("[\r\n]+$", "");
@@ -26,7 +28,7 @@ public class StringUtils {
             return "";
         }
 
-        final String sampleString = strings.get(0);
+        final String sampleString = firstOf(strings);
         final MutableInteger length = new MutableInteger();
         while (strings.stream().allMatch(c -> c.startsWith(sampleString.substring(0, length.value)))) {
             length.value++;

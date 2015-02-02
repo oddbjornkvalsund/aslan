@@ -7,6 +7,8 @@ import no.nixx.aslan.core.ExecutionContext;
 import java.io.*;
 import java.util.List;
 
+import static no.nixx.aslan.core.utils.ListUtils.firstOf;
+
 @ExecutableMetadata(name = "grep")
 public class Grep implements Executable {
     private InputStream is;
@@ -20,7 +22,7 @@ public class Grep implements Executable {
         this.os = os;
 
         if (args.size() == 1) {
-            pattern = args.get(0);
+            pattern = firstOf(args);
         } else {
             throw new IllegalArgumentException("Only one pattern allowed!");
         }

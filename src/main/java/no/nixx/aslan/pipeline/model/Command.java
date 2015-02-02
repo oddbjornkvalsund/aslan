@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.unmodifiableList;
+import static no.nixx.aslan.core.utils.ListUtils.allButFirstOf;
+import static no.nixx.aslan.core.utils.ListUtils.firstOf;
 
 public class Command {
-    private final List<Argument> arguments = new ArrayList<Argument>();
+    private final List<Argument> arguments = new ArrayList<>();
 
     public void addArgument(Argument argument) {
         this.arguments.add(argument);
@@ -21,18 +23,19 @@ public class Command {
     }
 
     public String getExecutableName() {
-        if (this.arguments.get(0).isLiteral()) {
-            return ((Literal) this.arguments.get(0)).text;
+        final Argument firstArgument = firstOf(this.arguments);
+        if (firstArgument.isLiteral()) {
+            return ((Literal) firstArgument).text;
         } else {
-            throw new IllegalArgumentException("Executable name not a literal: " + this.arguments.get(0));
+            throw new IllegalArgumentException("Executable name not a literal: " + firstArgument);
         }
     }
 
     public List<String> getArgumentsAsStrings() {
         // TODO: Perhaps a bad idea!
-        final List<String> argumentsAsStrings = new ArrayList<String>();
+        final List<String> argumentsAsStrings = new ArrayList<>();
 
-        for (Argument argument : this.arguments.subList(1, this.arguments.size())) {
+        for (Argument argument : allButFirstOf(this.arguments)) {
             if (argument.isLiteral()) {
                 argumentsAsStrings.add(((Literal) argument).text);
             } else {
