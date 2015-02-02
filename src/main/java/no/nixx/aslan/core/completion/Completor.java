@@ -71,7 +71,7 @@ public class Completor {
 
     private CompletionResult createCompletionResult(String command, int tabPosition, String argumentToComplete, List<String> completions) {
         final boolean onlyOneCompletion = (completions.size() == 1);
-        final int idx = command.lastIndexOf(argumentToComplete);
+        final int idx = command.substring(0, tabPosition).lastIndexOf(argumentToComplete);
         final String completion = onlyOneCompletion ? (completions.get(0) + " ") : getCommonStartOfStrings(completions);
         final String newText = command.substring(0, idx) + completion + command.substring(idx + argumentToComplete.length());
         final int newTabPosition = tabPosition + (completion.length() - argumentToComplete.length());

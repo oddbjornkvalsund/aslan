@@ -70,7 +70,7 @@ public class CompletorTest {
     };
 
     @Test
-    public void testResult() {
+    public void testCompletion() {
         CompletionResult result;
 
         result = completor.getCompletions("g", 1, executableLocator);
@@ -105,6 +105,15 @@ public class CompletorTest {
 
         result = completor.getCompletions("git add file --verbosity high ", 30, executableLocator);
         assertEquals(new CompletionResult(30, "git add file --verbosity high ", asList("--verbose", "fileA", "fileB", "fileC")), result);
+    }
+
+    @Test
+    public void testInlineCompletion() {
+        CompletionResult result;
+
+        result = completor.getCompletions("git add file f fileB", 14, executableLocator);
+        assertEquals(new CompletionResult(17, "git add file file fileB", asList("fileA", "fileB", "fileC")), result);
+
     }
 
     private CompletionSpec files() {
