@@ -3,10 +3,12 @@ package no.nixx.aslan.ui;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -53,6 +55,9 @@ public class AslanShell extends VBox {
     private final VBox console;
     private final ScrollPane consoleScrollPane;
     private final Label inputPrompt;
+
+    private long previousKeyTimestamp = Long.MIN_VALUE;
+    private KeyCode previousKeyCode = KeyCode.UNDEFINED;
 
     public AslanShell() {
         console = createConsole();
@@ -106,8 +111,8 @@ public class AslanShell extends VBox {
         final TextField textField = new TextField();
         undecorate(textField);
         setHgrow(textField, ALWAYS);
-        textField.setOnAction(action -> executeCommand()); // TODO: This should not run on the JavaFX event thread
-        textField.setOnKeyPressed((event) -> handleKeyPressed(event));
+        textField.setOnAction(this::executeCommand); // TODO: This should not run on the JavaFX event thread
+        textField.setOnKeyPressed(this::handleKeyPressed);
 
         return textField;
     }
@@ -127,10 +132,14 @@ public class AslanShell extends VBox {
     private void handleKeyPressed(KeyEvent event) {
         if (event.isControlDown() && event.getCode().equals(L)) {
             clearConsole();
+            event.consume();
         } else if (event.getCode().equals(TAB)) {
             tabComplete();
             event.consume();
         }
+
+        previousKeyTimestamp = System.currentTimeMillis();
+        previousKeyCode = event.getCode();
     }
 
     private void tabComplete() {
@@ -140,7 +149,7 @@ public class AslanShell extends VBox {
         final Completor completor = new Completor();
         final CompletionResult result = completor.getCompletions(command, tabPosition, new ExecutableLocatorImpl());
 
-        if (!result.completionCandidates.isEmpty()) {
+        if (result.hasCompletionCandidates() && isDoubleTab()) {
             output(join(result.completionCandidates, " "));
         }
 
@@ -148,11 +157,19 @@ public class AslanShell extends VBox {
         inputTextField.positionCaret(result.tabPosition);
     }
 
+    private boolean isDoubleTab() {
+        return previousKeyCode == KeyCode.TAB && millisSinceLastKeyPress() < 1000;
+    }
+
+    private long millisSinceLastKeyPress() {
+        return System.currentTimeMillis() - previousKeyTimestamp;
+    }
+
     private void clearConsole() {
         console.getChildren().clear();
     }
 
-    private void executeCommand() {
+    private void executeCommand(ActionEvent actionEvent) {
         final String command = getCommand();
 
         final Pipeline pipeline;

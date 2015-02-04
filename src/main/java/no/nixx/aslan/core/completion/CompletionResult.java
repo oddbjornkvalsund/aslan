@@ -15,6 +15,10 @@ public class CompletionResult {
         this.completionCandidates = notNull(completionCandidates);
     }
 
+    public boolean hasCompletionCandidates() {
+        return completionCandidates.size() > 0;
+    }
+
     @Override
     public String toString() {
         return "CompletionResult{" +
