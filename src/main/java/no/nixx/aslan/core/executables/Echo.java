@@ -1,33 +1,23 @@
 package no.nixx.aslan.core.executables;
 
-import no.nixx.aslan.core.Executable;
-import no.nixx.aslan.core.ExecutableMetadata;
-import no.nixx.aslan.core.ExecutionContext;
+import no.nixx.aslan.api.ExecutionContext;
+import no.nixx.aslan.api.Program;
+import no.nixx.aslan.core.*;
 
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.List;
 
 @ExecutableMetadata(name = "echo")
-public class Echo implements Executable {
-
-    private PrintWriter writer;
-    private List<String> args;
+public class Echo implements Program {
 
     @Override
-    public void init(InputStream is, OutputStream os, OutputStream es, ExecutionContext context, List<String> args) {
-        writer = new PrintWriter(os, true);
-        this.args = args;
-    }
-
-    @Override
-    public void run() {
+    public void run(ExecutionContext context, List<String> args) {
+        final PrintWriter writer = new PrintWriter(context.output(), true);
         final Iterator<String> iterator = args.iterator();
-        while(iterator.hasNext()) {
+        while (iterator.hasNext()) {
             writer.print(iterator.next());
-            if(iterator.hasNext()) {
+            if (iterator.hasNext()) {
                 writer.print(" ");
             }
         }

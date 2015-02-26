@@ -31,7 +31,7 @@ public abstract class CompletionSpec {
     }
 
     public static CompletionSpec files() {
-        return new FilesCompletionSpec("fileA", "fileB", "fileC");
+        return new FilesCompletionSpec();
     }
 
     public abstract boolean isPartialMatch(String argument);

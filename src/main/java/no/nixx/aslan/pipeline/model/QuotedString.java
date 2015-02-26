@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.unmodifiableList;
-import static no.nixx.aslan.core.utils.Preconditions.notNull;
+import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 
 public class QuotedString extends Argument {
 
@@ -63,7 +63,7 @@ public class QuotedString extends Argument {
 
         public Component(int position, Argument argument) {
             this.position = position;
-            this.argument = notNull(argument);
+            this.argument = checkNotNull(argument);
         }
 
         @Override

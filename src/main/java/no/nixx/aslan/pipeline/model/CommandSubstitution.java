@@ -1,13 +1,13 @@
 package no.nixx.aslan.pipeline.model;
 
-import static no.nixx.aslan.core.utils.Preconditions.notNull;
+import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 
 public class CommandSubstitution extends Argument {
 
     private final Pipeline pipeline;
 
     public CommandSubstitution(Pipeline pipeline) {
-        this.pipeline = notNull(pipeline);
+        this.pipeline = checkNotNull(pipeline);
     }
 
     public Pipeline getPipeline() {

@@ -1,5 +1,8 @@
 package no.nixx.aslan.core;
 
+import no.nixx.aslan.api.Executable;
+import no.nixx.aslan.api.ExecutionContext;
+import no.nixx.aslan.api.Program;
 import no.nixx.aslan.pipeline.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,22 +23,25 @@ public class PipelineExecutorImpl implements PipelineExecutor {
 
     final ExecutorService threadPool;
     final ExecutableLocator executableLocator;
-
-    final InputStream defaultInputStream;
-    final OutputStream defaultOutputStream;
+    final ExecutionContextFactory executionContextFactory;
     final PrintStream defaultErrorStream;
+    private final InputStream defaultInputStream;
+    private final OutputStream defaultOutputStream;
 
-    public PipelineExecutorImpl(ExecutorService threadPool, ExecutableLocator executableLocator, InputStream defaultInputStream, OutputStream defaultOutputStream, OutputStream defaultErrorStream) {
+    public PipelineExecutorImpl(ExecutorService threadPool, ExecutableLocator executableLocator, ExecutionContextFactory executionContextFactory, InputStream defaultInputStream, OutputStream defaultOutputStream, OutputStream defaultErrorStream) {
         this.threadPool = threadPool;
         this.executableLocator = executableLocator;
+        this.executionContextFactory = executionContextFactory;
         this.defaultInputStream = defaultInputStream;
         this.defaultOutputStream = defaultOutputStream;
         this.defaultErrorStream = new PrintStream(defaultErrorStream);
     }
 
-    public void execute(ExecutionContext context, Pipeline pipeline) {
-        expandArguments(context, pipeline);
-        executePipeline(context, pipeline, defaultInputStream, defaultOutputStream);
+    @Override
+    public void execute(Pipeline pipeline) {
+        final ExecutionContext executionContextForExpansion = executionContextFactory.createExecutionContext(defaultInputStream, defaultOutputStream, defaultErrorStream);
+        expandArguments(executionContextForExpansion, pipeline);
+        executePipeline(pipeline, defaultInputStream, defaultOutputStream);
     }
 
     private void expandArguments(ExecutionContext context, Pipeline pipeline) {
@@ -44,7 +50,7 @@ public class PipelineExecutorImpl implements PipelineExecutor {
                 if (argument.isCommandSubstitution()) {
                     final CommandSubstitution cs = (CommandSubstitution) argument;
                     expandArguments(context, cs.getPipeline());
-                    command.replaceArgument(argument, getExpandedCommand(context, cs.getPipeline()));
+                    command.replaceArgument(argument, getExpandedCommand(cs.getPipeline()));
                 } else if (argument.isVariableSubstitution()) {
                     final VariableSubstitution vs = (VariableSubstitution) argument;
                     command.replaceArgument(argument, getExpandedVariable(context, vs));
@@ -58,10 +64,10 @@ public class PipelineExecutorImpl implements PipelineExecutor {
                             final VariableSubstitution vs = (VariableSubstitution) component.argument;
                             final Literal expandedVariable = getExpandedVariable(context, vs);
                             expandedComponentText = expandedVariable.text;
-                        } else if(component.argument.isCommandSubstitution()) {
+                        } else if (component.argument.isCommandSubstitution()) {
                             final CommandSubstitution cs = (CommandSubstitution) component.argument;
                             expandArguments(context, cs.getPipeline());
-                            final Literal expandedCommand = getExpandedCommand(context, cs.getPipeline());
+                            final Literal expandedCommand = getExpandedCommand(cs.getPipeline());
                             expandedComponentText = expandedCommand.text;
                         } else {
                             throw new IllegalStateException("Illegal component type, expected VariableSubstitution or CommandSubstitution: " + component.argument);
@@ -78,26 +84,22 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     }
 
     private Literal getExpandedVariable(ExecutionContext context, VariableSubstitution vs) {
-        if (context.isVariableSet(vs.variableName)) {
-            return new Literal(context.getVariable(vs.variableName));
-        } else {
-            throw new IllegalArgumentException("No such variable: " + vs.variableName);
-        }
+        return new Literal(context.getVariable(vs.variableName));
     }
 
-    private Literal getExpandedCommand(ExecutionContext context, Pipeline pipeline) {
+    private Literal getExpandedCommand(Pipeline pipeline) {
         final InputStream in = new ByteArrayInputStream(new byte[0]);
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        executePipeline(context, pipeline, in, out);
+        executePipeline(pipeline, in, out);
 
         return new Literal(removeTrailingNewlines(out.toString()));
     }
 
-    private void executePipeline(ExecutionContext context, Pipeline pipeline, InputStream outerInputStream, OutputStream outerOutputStream) {
-        final List<ExecutableWithStreams> executables = new ArrayList<>();
+    private void executePipeline(Pipeline pipeline, InputStream outerInputStream, OutputStream outerOutputStream) {
+        final List<ExecutableWithExecutionContextAndArgs> executables = new ArrayList<>();
 
         final List<Command> commands = pipeline.getCommandsUnmodifiable();
-        if(commands.isEmpty()) {
+        if (commands.isEmpty()) {
             return;
         }
 
@@ -124,44 +126,52 @@ public class PipelineExecutorImpl implements PipelineExecutor {
             }
 
             final Executable executable = executableLocator.lookupExecutable(command.getExecutableName());
-            try {
-                // TODO: init() runs on the main thread, which is not a good idea. It had better run on a separate and
-                // interruptible thread.
-                executable.init(in, out, defaultErrorStream, context, command.getArgumentsAsStrings());
-            } catch (Throwable t) {
-                // TODO: Direct logging output to logfile
-                logger.error(t.getMessage(), t);
-                defaultErrorStream.println(getExecutableName(executable) + ": " + t.getMessage());
-                return;
+            if (executable == null) {
+                throw new IllegalArgumentException(command.getExecutableName() + ": command not found");
             }
-            executables.add(new ExecutableWithStreams(executable, in, out));
+            if (executable instanceof ShellUtil) {
+                final ShellUtilExecutionContext context = executionContextFactory.createShellUtilExecutionContext(in, out, defaultErrorStream);
+                executables.add(new ExecutableWithExecutionContextAndArgs(executable, context, command.getArgumentsAsStrings()));
+            } else {
+                final ExecutionContext context = executionContextFactory.createExecutionContext(in, out, defaultErrorStream);
+                executables.add(new ExecutableWithExecutionContextAndArgs(executable, context, command.getArgumentsAsStrings()));
+            }
         }
 
         final CountDownLatch latch = new CountDownLatch(executables.size());
-        for (final ExecutableWithStreams executableWithStreams : executables) {
+        for (final ExecutableWithExecutionContextAndArgs executableWithExecutionContextAndArgs : executables) {
             threadPool.execute(() -> {
-                final Executable executable = executableWithStreams.executable;
+                final Executable executable = executableWithExecutionContextAndArgs.executable;
+                final ExecutionContext executionContext = executableWithExecutionContextAndArgs.executionContext;
                 final String executableName = getExecutableName(executable);
                 try {
-                    executable.run();
+                    if (executable instanceof Program) {
+                        final Program program = (Program) executable;
+                        program.run(executionContext, executableWithExecutionContextAndArgs.args);
+                    } else if (executable instanceof ShellUtil) {
+                        final ShellUtil shellUtil = (ShellUtil) executable;
+                        shellUtil.run((ShellUtilExecutionContext) executionContext, executableWithExecutionContextAndArgs.args);
+                    } else {
+                        throw new IllegalStateException("Unknown executable type: " + executable);
+                    }
                 } catch (Throwable t) {
                     // TODO: Direct logging output to logfile
                     logger.error(t.getMessage(), t);
                     defaultErrorStream.println(executableName + ": " + t.getMessage());
                 } finally {
                     try {
-                        if (executableWithStreams.in != System.in) {
-                            executableWithStreams.in.close();
+                        if (executionContext.input() != System.in) {
+                            executionContext.input().close();
                         }
 
-                        executableWithStreams.out.flush();
-                        if (executableWithStreams.out != System.out) {
-                            executableWithStreams.out.close();
+                        executionContext.output().flush();
+                        if (executionContext.output() != System.out) {
+                            executionContext.output().close();
                         }
 
                         // TODO: The executable needs to get a reference to err as well
                         defaultErrorStream.flush();
-                        if(defaultErrorStream != System.out) {
+                        if (defaultErrorStream != System.out) {
                             defaultErrorStream.close();
                         }
                     } catch (IOException e) {
@@ -188,15 +198,15 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         return metadata.name();
     }
 
-    private class ExecutableWithStreams {
+    private class ExecutableWithExecutionContextAndArgs {
         public final Executable executable;
-        public final InputStream in;
-        public final OutputStream out;
+        public final ExecutionContext executionContext;
+        private final List<String> args;
 
-        ExecutableWithStreams(Executable executable, InputStream in, OutputStream out) {
+        ExecutableWithExecutionContextAndArgs(Executable executable, ExecutionContext executionContext, List<String> args) {
             this.executable = executable;
-            this.in = in;
-            this.out = out;
+            this.executionContext = executionContext;
+            this.args = args;
         }
     }
 }

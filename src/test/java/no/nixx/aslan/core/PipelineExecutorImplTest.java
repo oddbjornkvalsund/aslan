@@ -20,6 +20,7 @@ public class PipelineExecutorImplTest {
 
     final static PipelineParser parser = new PipelineParser();
     final static ExecutableLocatorImpl executableLocator = new ExecutableLocatorImpl();
+    final static ExecutionContextFactoryImpl executionContextFactory = new ExecutionContextFactoryImpl(new WorkingDirectoryImpl("."));
 
     static ExecutorService threadPool;
 
@@ -38,8 +39,8 @@ public class PipelineExecutorImplTest {
     public void testEmptyPipeline() {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
-        executor.execute(new ExecutionContextImpl(), new Pipeline());
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, executionContextFactory, in, out, System.err);
+        executor.execute(new Pipeline());
 
         assertEquals(format(""), out.toString());
     }
@@ -48,8 +49,8 @@ public class PipelineExecutorImplTest {
     public void testEcho() {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
-        executor.execute(new ExecutionContextImpl(), parser.parseCommand("echo foo"));
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, executionContextFactory, in, out, System.err);
+        executor.execute(parser.parseCommand("echo foo"));
 
         assertEquals(format("foo%n"), out.toString());
     }
@@ -58,8 +59,8 @@ public class PipelineExecutorImplTest {
     public void testPipeline() {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
-        executor.execute(new ExecutionContextImpl(), parser.parseCommand("echo foo | grep foo"));
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, executionContextFactory, in, out, System.err);
+        executor.execute(parser.parseCommand("echo foo | grep foo"));
 
         assertEquals(format("foo%n"), out.toString());
     }
@@ -68,10 +69,9 @@ public class PipelineExecutorImplTest {
     public void testVariableSubstitution() {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
-        final ExecutionContextImpl executionContext = new ExecutionContextImpl();
-        executionContext.setVariable("HOME", "MyHome");
-        executor.execute(executionContext, parser.parseCommand("echo ${HOME}"));
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, executionContextFactory, in, out, System.err);
+        executionContextFactory.setVariable("HOME", "MyHome");
+        executor.execute(parser.parseCommand("echo ${HOME}"));
 
         assertEquals(format("MyHome%n"), out.toString());
     }
@@ -80,12 +80,11 @@ public class PipelineExecutorImplTest {
     public void testVariableSubstitutionInQuotedString() {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
-        final ExecutionContextImpl executionContext = new ExecutionContextImpl();
-        executionContext.setVariable("A", "aaa");
-        executionContext.setVariable("B", "bbb");
-        executionContext.setVariable("C", "ccc");
-        executor.execute(executionContext, parser.parseCommand("echo \"A: ${A}, B: ${B}, C: ${C}\""));
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, executionContextFactory, in, out, System.err);
+        executionContextFactory.setVariable("A", "aaa");
+        executionContextFactory.setVariable("B", "bbb");
+        executionContextFactory.setVariable("C", "ccc");
+        executor.execute(parser.parseCommand("echo \"A: ${A}, B: ${B}, C: ${C}\""));
         assertEquals(format("A: aaa, B: bbb, C: ccc%n"), out.toString());
     }
 
@@ -93,8 +92,8 @@ public class PipelineExecutorImplTest {
     public void testCommandSubstitution() {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
-        executor.execute(new ExecutionContextImpl(), parser.parseCommand("echo $(echo foo | grep o | grep o)"));
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, executionContextFactory, in, out, System.err);
+        executor.execute(parser.parseCommand("echo $(echo foo | grep o | grep o)"));
 
         assertEquals(format("foo%n"), out.toString());
     }
@@ -103,9 +102,8 @@ public class PipelineExecutorImplTest {
     public void testCommandSubstitutionInQuotedString() {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
-        final ExecutionContextImpl executionContext = new ExecutionContextImpl();
-        executor.execute(executionContext, parser.parseCommand("echo \"echo foo outputs: $(echo foo).\""));
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, executionContextFactory, in, out, System.err);
+        executor.execute(parser.parseCommand("echo \"echo foo outputs: $(echo foo).\""));
 
         assertEquals(format("echo foo outputs: foo.%n"), out.toString());
     }
@@ -114,10 +112,9 @@ public class PipelineExecutorImplTest {
     public void testComplexQuotedString() {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, System.err);
-        final ExecutionContextImpl executionContext = new ExecutionContextImpl();
-        executionContext.setVariable("O", "o");
-        executor.execute(executionContext, parser.parseCommand("echo \"echo foo outputs: $(echo $(echo foo | grep $(echo ${O})))\""));
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, executionContextFactory, in, out, System.err);
+        executionContextFactory.setVariable("O", "o");
+        executor.execute(parser.parseCommand("echo \"echo foo outputs: $(echo $(echo foo | grep $(echo ${O})))\""));
 
         assertEquals(format("echo foo outputs: foo%n"), out.toString());
     }
@@ -127,8 +124,8 @@ public class PipelineExecutorImplTest {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         final ByteArrayOutputStream err = new ByteArrayOutputStream();
-        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, in, out, err);
-        executor.execute(new ExecutionContextImpl(), parser.parseCommand("echo $(echo fooooooo | failwhenrun | grep o)"));
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, executionContextFactory, in, out, System.err);
+        executor.execute(parser.parseCommand("echo $(echo fooooooo | failwhenrun | grep o)"));
 
         // The command substitution prints 4 characters before failing. The newline is added by the first "echo"
         assertEquals(format("fooo%n"), out.toString());

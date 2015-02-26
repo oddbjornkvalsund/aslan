@@ -2,7 +2,7 @@ package no.nixx.aslan.core.completion;
 
 import java.util.List;
 
-import static no.nixx.aslan.core.utils.Preconditions.notNull;
+import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 
 public class CompletionResult {
     public final int tabPosition;
@@ -11,8 +11,8 @@ public class CompletionResult {
 
     public CompletionResult(int tabPosition, String text, List<String> completionCandidates) {
         this.tabPosition = tabPosition;
-        this.text = notNull(text);
-        this.completionCandidates = notNull(completionCandidates);
+        this.text = checkNotNull(text);
+        this.completionCandidates = checkNotNull(completionCandidates);
     }
 
     public boolean hasCompletionCandidates() {

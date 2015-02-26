@@ -1,6 +1,6 @@
 package no.nixx.aslan.core.completion;
 
-import no.nixx.aslan.core.Executable;
+import no.nixx.aslan.api.Executable;
 import no.nixx.aslan.core.ExecutableLocator;
 import no.nixx.aslan.pipeline.PipelineParser;
 import no.nixx.aslan.pipeline.model.Command;
@@ -37,7 +37,7 @@ public class Completor {
 
         if (executable instanceof Completable) {
             final Completable completable = (Completable) executable;
-            final CompletionSpecRoot completionSpecRoot = completable.getCompletionSpec();
+            final CompletionSpecRoot completionSpecRoot = completable.getCompletionSpec(); // TODO: getCompletionSpec should be passed an instance of Environment
 
             final List<String> arguments = getArguments(commandUpToTab, commandToComplete);
             if (arguments.isEmpty()) {

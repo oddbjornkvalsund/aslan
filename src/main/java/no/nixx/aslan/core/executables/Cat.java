@@ -1,8 +1,8 @@
 package no.nixx.aslan.core.executables;
 
-import no.nixx.aslan.core.Executable;
-import no.nixx.aslan.core.ExecutableMetadata;
-import no.nixx.aslan.core.ExecutionContext;
+import no.nixx.aslan.api.ExecutionContext;
+import no.nixx.aslan.api.Program;
+import no.nixx.aslan.core.*;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -10,34 +10,21 @@ import java.nio.file.Paths;
 import java.util.List;
 
 @ExecutableMetadata(name = "cat")
-public class Cat implements Executable {
-    private InputStream is;
-    private OutputStream os;
-    private ExecutionContext context;
-    private List<String> args;
-
+public class Cat implements Program {
     @Override
-    public void init(InputStream is, OutputStream os, OutputStream es, ExecutionContext context, List<String> args) {
-        this.is = is;
-        this.os = os;
-        this.context = context;
-        this.args = args;
-    }
-
-    @Override
-    public void run() {
+    public void run(ExecutionContext context, List<String> args) {
         if (args.isEmpty()) {
-            copy(is, os);
+            copy(context.input(), context.output());
         } else {
-            final Path cwd = Paths.get(context.getCurrentWorkingDirectory());
+            final Path cwd = context.getWorkingDirectory().asPath();
             for (String filename : args) {
                 if (filename.equals("-")) {
-                    copy(is, os);
+                    copy(context.input(), context.output());
                 } else {
                     final Path file = cwd.resolve(Paths.get(filename));
                     try {
                         final FileInputStream fileInputStream = new FileInputStream(file.toFile());
-                        copy(fileInputStream, os);
+                        copy(fileInputStream, context.output());
                     } catch (FileNotFoundException e) {
                         throw new RuntimeException(e);
                     }

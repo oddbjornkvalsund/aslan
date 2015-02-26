@@ -1,12 +1,12 @@
 package no.nixx.aslan.pipeline.model;
 
-import static no.nixx.aslan.core.utils.Preconditions.notNull;
+import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 
 public class VariableSubstitution extends Argument {
     public final String variableName;
 
     public VariableSubstitution(String variableName) {
-        this.variableName = notNull(variableName);
+        this.variableName = checkNotNull(variableName);
     }
 
     @Override

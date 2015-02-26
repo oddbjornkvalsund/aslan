@@ -1,6 +1,10 @@
 package no.nixx.aslan.core;
 
+import no.nixx.aslan.api.Executable;
 import no.nixx.aslan.core.executables.*;
+import no.nixx.aslan.core.executables.shellutils.Cd;
+import no.nixx.aslan.core.executables.shellutils.Set;
+import no.nixx.aslan.core.executables.shellutils.Unset;
 
 import java.util.HashMap;
 import java.util.List;
@@ -16,8 +20,9 @@ public class ExecutableLocatorImpl implements ExecutableLocator {
             put("grep", Grep.class);
             put("echo", Echo.class);
             put("cat", Cat.class);
+            put("set", Set.class);
+            put("unset", Unset.class);
             put("failwhenrun", FailWhenRun.class);
-            put("failwheninit", FailWhenInit.class);
         }
     };
 

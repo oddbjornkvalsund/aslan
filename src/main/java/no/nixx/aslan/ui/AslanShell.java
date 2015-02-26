@@ -1,8 +1,6 @@
 package no.nixx.aslan.ui;
 
 import javafx.beans.binding.Bindings;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
@@ -14,6 +12,7 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import no.nixx.aslan.core.ExecutableLocatorImpl;
 import no.nixx.aslan.core.PipelineExecutorImpl;
+import no.nixx.aslan.core.WorkingDirectoryImpl;
 import no.nixx.aslan.core.completion.CompletionResult;
 import no.nixx.aslan.core.completion.Completor;
 import no.nixx.aslan.pipeline.ParseException;
@@ -22,7 +21,6 @@ import no.nixx.aslan.pipeline.model.Pipeline;
 import no.nixx.aslan.ui.components.LabelOutputStream;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
@@ -46,7 +44,7 @@ public class AslanShell extends VBox {
     private final List<String> history = new ArrayList<>();
 
     private final PipelineParser parser = new PipelineParser();
-    private final ObservableExecutionContext executionContext = new ObservableExecutionContext();
+    private final ObservableExecutionContextFactory executionContextFactory = new ObservableExecutionContextFactory(new WorkingDirectoryImpl(System.getProperty("user.dir")));
 
     private final Background transparentBackground = new Background(new BackgroundFill(Color.TRANSPARENT, null, null));
     private final Border transparentBorder = new Border(new BorderStroke(Color.TRANSPARENT, BorderStrokeStyle.NONE, CornerRadii.EMPTY, BorderWidths.EMPTY));
@@ -59,6 +57,7 @@ public class AslanShell extends VBox {
     private long previousKeyTimestamp = Long.MIN_VALUE;
     private KeyCode previousKeyCode = KeyCode.UNDEFINED;
 
+
     public AslanShell() {
         console = createConsole();
         consoleScrollPane = createConsoleScrollPane(console);
@@ -67,7 +66,6 @@ public class AslanShell extends VBox {
 
         getChildren().add(new VBox(consoleScrollPane, new HBox(inputPrompt, inputTextField)));
 
-        executionContext.setCurrentWorkingDirectory(System.getProperty("user.dir"));
         runLater(inputTextField::requestFocus);
 
         // DEBUG:
@@ -77,14 +75,8 @@ public class AslanShell extends VBox {
     private Label createInputPrompt() {
         final Label label = new Label("> ");
         undecorate(label);
-
-        executionContext.currentWorkingDirectoryProperty().addListener(new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                // TODO: Do this as a more elegant binding
-                final File newCwd = new File(newValue);
-                runLater(() -> label.setText(newCwd.getName() + "> "));
-            }
+        executionContextFactory.workingDirectoryProperty().addListener((observable, oldValue, newValue) -> {
+            runLater(() -> label.setText(newValue.asPath().getFileName() + "> "));
         });
         return label;
     }
@@ -184,10 +176,10 @@ public class AslanShell extends VBox {
         final OutputStream out = new LabelOutputStream(console, Color.BLACK, transparentBackground);
         final OutputStream err = new LabelOutputStream(console, Color.RED, new Background(new BackgroundFill(Color.TRANSPARENT, null, null)));
 
-        final PipelineExecutorImpl pipelineExecutor = new PipelineExecutorImpl(threadPool, new ExecutableLocatorImpl(), in, out, err);
+        final PipelineExecutorImpl pipelineExecutor = new PipelineExecutorImpl(threadPool, new ExecutableLocatorImpl(), executionContextFactory, in, out, err);
 
         try {
-            pipelineExecutor.execute(executionContext, pipeline);
+            pipelineExecutor.execute(pipeline);
             history.add(command);
         } catch (Exception exception) {
             error(exception.getMessage()); // Should not happen very often. Never?

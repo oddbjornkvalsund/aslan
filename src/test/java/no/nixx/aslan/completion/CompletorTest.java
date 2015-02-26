@@ -1,14 +1,13 @@
 package no.nixx.aslan.completion;
 
 import no.nixx.aslan.completion.specs.TestFilesCompletionSpec;
-import no.nixx.aslan.core.Executable;
+import no.nixx.aslan.api.Executable;
 import no.nixx.aslan.core.ExecutableLocator;
-import no.nixx.aslan.core.ExecutionContext;
+import no.nixx.aslan.api.ExecutionContext;
+import no.nixx.aslan.api.Program;
 import no.nixx.aslan.core.completion.*;
 import org.junit.Test;
 
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Collections;
 import java.util.List;
 
@@ -47,7 +46,7 @@ public class CompletorTest {
             return "git".startsWith(name) ? asList("git") : Collections.<String>emptyList();
         }
 
-        class TestExecutable implements Executable, Completable {
+        class TestExecutable implements Program, Completable {
 
             @Override
             public CompletionSpecRoot getCompletionSpec() {
@@ -55,11 +54,7 @@ public class CompletorTest {
             }
 
             @Override
-            public void init(InputStream is, OutputStream os, OutputStream es, ExecutionContext context, List<String> args) {
-            }
-
-            @Override
-            public void run() {
+            public void run(ExecutionContext executionContext, List<String> args) {
             }
 
             @Override
