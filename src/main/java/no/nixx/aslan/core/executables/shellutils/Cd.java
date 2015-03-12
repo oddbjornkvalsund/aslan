@@ -1,9 +1,13 @@
 package no.nixx.aslan.core.executables.shellutils;
 
-import no.nixx.aslan.core.ShellUtilExecutionContext;
-import no.nixx.aslan.core.ShellUtil;
+import no.nixx.aslan.api.ExecutionContext;
 import no.nixx.aslan.core.ExecutableMetadata;
+import no.nixx.aslan.core.ShellUtil;
+import no.nixx.aslan.core.ShellUtilExecutionContext;
 import no.nixx.aslan.core.WorkingDirectoryImpl;
+import no.nixx.aslan.core.completion.Completable;
+import no.nixx.aslan.core.completion.CompletionSpecRoot;
+import no.nixx.aslan.core.completion.specs.PathCompletionSpec;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -13,7 +17,7 @@ import static java.nio.file.Files.isDirectory;
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
 
 @ExecutableMetadata(name = "cd")
-public class Cd implements ShellUtil {
+public class Cd implements ShellUtil, Completable {
 
     @Override
     public void run(ShellUtilExecutionContext context, List<String> args) {
@@ -32,5 +36,12 @@ public class Cd implements ShellUtil {
     @Override
     public int getExitStatus() {
         return 0;
+    }
+
+    @Override
+    public CompletionSpecRoot getCompletionSpec(ExecutionContext executionContext) {
+        return new CompletionSpecRoot(
+                new PathCompletionSpec(executionContext)
+        );
     }
 }

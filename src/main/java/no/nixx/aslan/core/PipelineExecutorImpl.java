@@ -169,7 +169,6 @@ public class PipelineExecutorImpl implements PipelineExecutor {
                             executionContext.output().close();
                         }
 
-                        // TODO: The executable needs to get a reference to err as well
                         defaultErrorStream.flush();
                         if (defaultErrorStream != System.out) {
                             defaultErrorStream.close();

@@ -139,7 +139,7 @@ public class AslanShell extends VBox {
         final int tabPosition = inputTextField.getCaretPosition();
 
         final Completor completor = new Completor();
-        final CompletionResult result = completor.getCompletions(command, tabPosition, new ExecutableLocatorImpl());
+        final CompletionResult result = completor.getCompletions(command, tabPosition, new ExecutableLocatorImpl(), executionContextFactory.createExecutionContext());
 
         if (result.hasCompletionCandidates() && isDoubleTab()) {
             output(join(result.completionCandidates, " "));

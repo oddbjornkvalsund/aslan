@@ -62,6 +62,45 @@ public class ObservableExecutionContextFactory implements ExecutionContextFactor
         }
     }
 
+    public ExecutionContext createExecutionContext() {
+        return new ExecutionContext() {
+            @Override
+            public InputStream input() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public OutputStream output() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public OutputStream error() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public WorkingDirectory getWorkingDirectory() {
+                return workingDirectory.get();
+            }
+
+            @Override
+            public boolean isVariableSet(String name) {
+                return ObservableExecutionContextFactory.this.isVariableSet(name);
+            }
+
+            @Override
+            public String getVariable(String name) {
+                return ObservableExecutionContextFactory.this.getVariable(name);
+            }
+
+            @Override
+            public List<String> getVariableNames() {
+                return ObservableExecutionContextFactory.this.getVariableNames();
+            }
+        };
+    }
+
     @Override
     public ExecutionContext createExecutionContext(InputStream input, OutputStream output, OutputStream error) {
         checkNotNull(input);

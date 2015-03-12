@@ -1,6 +1,5 @@
 package no.nixx.aslan.core.completion;
 
-import no.nixx.aslan.core.completion.specs.FilesCompletionSpec;
 import no.nixx.aslan.core.completion.specs.KeywordCompletionSpec;
 import no.nixx.aslan.core.completion.specs.OptionCompletionSpec;
 
@@ -30,15 +29,19 @@ public abstract class CompletionSpec {
         return new KeywordCompletionSpec(keywords);
     }
 
-    public static CompletionSpec files() {
-        return new FilesCompletionSpec();
-    }
-
     public abstract boolean isPartialMatch(String argument);
 
     public abstract boolean isCompleteMatch(String argument);
 
     public abstract List<String> getCompletions(String argument);
+
+    public boolean canOccurOnlyOnce() {
+        return true;
+    }
+
+    public boolean appendSpaceIfOnlyOneCompletion() {
+        return true;
+    }
 
     public CompletionSpec getParent() {
         if (parent == null) {
@@ -56,9 +59,5 @@ public abstract class CompletionSpec {
 
     public List<CompletionSpec> getChildren() {
         return children;
-    }
-
-    public boolean canOccurOnlyOnce() {
-        return true;
     }
 }

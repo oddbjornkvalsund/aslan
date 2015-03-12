@@ -5,7 +5,6 @@ import no.nixx.aslan.api.Program;
 import no.nixx.aslan.core.*;
 import no.nixx.aslan.core.completion.Completable;
 import no.nixx.aslan.core.completion.CompletionSpecRoot;
-import no.nixx.aslan.core.completion.specs.KeywordCompletionSpec;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,14 +37,7 @@ public class Ls implements Program, Completable {
     }
 
     @Override
-    public CompletionSpecRoot getCompletionSpec() {
-        return new CompletionSpecRoot(
-                new KeywordCompletionSpec("fileA", "fileB", "fileC", "foo", "bar") {
-                    @Override
-                    public boolean canOccurOnlyOnce() {
-                        return false;
-                    }
-                }
-        );
+    public CompletionSpecRoot getCompletionSpec(ExecutionContext executionContext) {
+        return new CompletionSpecRoot();
     }
 }

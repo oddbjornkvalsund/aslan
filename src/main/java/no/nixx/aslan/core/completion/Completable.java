@@ -1,6 +1,7 @@
 package no.nixx.aslan.core.completion;
 
-public interface Completable {
-    CompletionSpecRoot getCompletionSpec();
-}
+import no.nixx.aslan.api.ExecutionContext;
 
+public interface Completable {
+    CompletionSpecRoot getCompletionSpec(ExecutionContext executionContext);
+}
