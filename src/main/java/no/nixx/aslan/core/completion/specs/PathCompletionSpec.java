@@ -6,6 +6,7 @@ import no.nixx.aslan.core.completion.CompletionSpec;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -36,9 +37,9 @@ public class PathCompletionSpec extends CompletionSpec {
         final String pathSeparator = "\\"; // TODO: Portable
         final List<Path> matchingPaths = getMatchingPaths(argument).collect(toList());
 
-        doAppendSpace = (matchingPaths.size() == 1) && Files.isRegularFile(matchingPaths.get(0));
+        doAppendSpace = (matchingPaths.size() == 1) && Files.isRegularFile(getResolved(matchingPaths.get(0)));
 
-        return matchingPaths.stream().map(p -> Files.isDirectory(p) ? p.getFileName().toString() + pathSeparator : p.getFileName().toString()).collect(toList());
+        return matchingPaths.stream().map(p -> Files.isDirectory(getResolved(p)) ? p.toString() + pathSeparator : p.toString()).collect(toList());
     }
 
     @Override
@@ -53,18 +54,53 @@ public class PathCompletionSpec extends CompletionSpec {
 
     private Stream<Path> getMatchingPaths(String argument) {
         final Path workingDirectory = executionContext.getWorkingDirectory().asPath();
-        final Path dir = argument.isEmpty() ? workingDirectory : getArgumentResolved(argument).getParent();
-        final String partialPath = argument.isEmpty() ? "" : getArgumentResolved(argument).getFileName().toString();
+
+        final Path argumentAsPath = Paths.get(argument);
+        System.out.println("argumentAsPath: " + argumentAsPath);
+        System.out.println("Absolute: " + argumentAsPath.isAbsolute());
 
         try {
-            return Files.list(dir).filter(p -> p.getFileName().toString().startsWith(partialPath));
+            if (argument.isEmpty()) {
+                return Files
+                        .list(workingDirectory)
+                        .map(p -> p.subpath(workingDirectory.getNameCount(), p.getNameCount()));
+            } else {
+                final Path fullPath = getResolved(argument);
+                if (Files.exists(fullPath) && Files.isDirectory(fullPath)) {
+                    if (fullPath.isAbsolute()) {
+                        return Files.
+                                list(fullPath);
+                    } else {
+                        return Files.
+                                list(fullPath)
+                                .map(p -> p.subpath(workingDirectory.getNameCount(), p.getNameCount()));
+                    }
+                } else {
+                    final Path dir = fullPath.getParent();
+                    final String partialPath = fullPath.getFileName().toString();
+                    if (dir.isAbsolute()) {
+                        return Files
+                                .list(dir)
+                                .filter(p -> p.getFileName().toString().startsWith(partialPath));
+                    } else {
+                        return Files
+                                .list(dir)
+                                .filter(p -> p.getFileName().toString().startsWith(partialPath))
+                                .map(p -> p.subpath(workingDirectory.getNameCount(), p.getNameCount()));
+                    }
+                }
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private Path getArgumentResolved(String argument) {
-        return executionContext.getWorkingDirectory().asPath().resolve(argument);
+    private Path getResolved(String str) {
+        return executionContext.getWorkingDirectory().asPath().resolve(str);
+    }
+
+    private Path getResolved(Path path) {
+        return executionContext.getWorkingDirectory().asPath().resolve(path);
     }
 
     @Override

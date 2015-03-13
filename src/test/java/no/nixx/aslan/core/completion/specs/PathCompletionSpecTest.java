@@ -44,6 +44,7 @@ public class PathCompletionSpecTest {
     public void testPathCompletionSpec() {
         CompletionResult completions;
 
+        System.out.println("fsRoot: " + fsRoot);
         // TODO: Make path separators portable!
 
         completions = completor.getCompletions("ls ", 3, executableLocator, executionContext);
@@ -55,9 +56,14 @@ public class PathCompletionSpecTest {
         completions = completor.getCompletions("ls b", 4, executableLocator, executionContext);
         assertEquals(new CompletionResult(7, "ls bar\\", asList()), completions);
 
-        // TODO: Not working yet
-//        completions = completor.getCompletions("ls bar\\", 7, executableLocator, executionContext);
-//        assertEquals(new CompletionResult(7, "ls bar\\", asList("Image.png", "Image_old.png", "Imaginary.png")), completions);
+        completions = completor.getCompletions("ls bar\\", 7, executableLocator, executionContext);
+        assertEquals(new CompletionResult(11, "ls bar\\Imag", asList("bar\\Image.png", "bar\\Image_old.png", "bar\\Imaginary.png")), completions);
+
+        completions = completor.getCompletions("ls bar\\Imag", 11, executableLocator, executionContext);
+        assertEquals(new CompletionResult(11, "ls bar\\Imag", asList("bar\\Image.png", "bar\\Image_old.png", "bar\\Imaginary.png")), completions);
+
+        completions = completor.getCompletions("ls C:\\", 6, executableLocator, executionContext);
+        System.out.println(completions);
     }
 
     private Path createDirectory(Path parent, String name) {
