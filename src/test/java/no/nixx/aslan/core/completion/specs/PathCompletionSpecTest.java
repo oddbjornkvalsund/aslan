@@ -39,6 +39,10 @@ public class PathCompletionSpecTest {
         createFile(foo, "Notes.txt");
         createFile(foo, "Notes_old.txt");
 
+        final Path foobar = createDirectory(fsRoot, "foobar");
+        createFile(foobar, "Foobar.txt");
+        createFile(foobar, "Foobar_old.txt");
+
         final Path bar = createDirectory(fsRoot, "bar");
         createFile(bar, "Image.png");
         createFile(bar, "Image_old.png");
@@ -84,23 +88,35 @@ public class PathCompletionSpecTest {
 
         // Empty -> Match all dirs -> list all with trailing slash
         completions = completor.getCompletions("ls ", 3, executableLocator, executionContext);
-        assertEquals(new CompletionResult(3, "ls ", asList("bar\\", "foo\\")), completions);
+        assertEquals(new CompletionResult(3, "ls ", asList("bar\\", "foo\\", "foobar\\")), completions);
 
         // Partial match of one dir -> complete with trailing slash
-        completions = completor.getCompletions("ls f", 4, executableLocator, executionContext);
-        assertEquals(new CompletionResult(7, "ls foo\\", asList()), completions);
+        completions = completor.getCompletions("ls b", 4, executableLocator, executionContext);
+        assertEquals(new CompletionResult(7, "ls bar\\", asList()), completions);
 
         // Partial match of one dir starting with slash -> complete with trailing slash
         completions = completor.getCompletions("ls \\Us", 6, executableLocator, executionContext);
         assertEquals(new CompletionResult(10, "ls \\Users\\", asList()), completions);
 
         // Fully match of one dir -> complete with trailing slash
+        completions = completor.getCompletions("ls bar", 6, executableLocator, executionContext);
+        assertEquals(new CompletionResult(7, "ls bar\\", asList()), completions);
+
+        // Fully match of one dir whose name is also contained in other dirs name -> list all with trailing slash
         completions = completor.getCompletions("ls foo", 6, executableLocator, executionContext);
-        assertEquals(new CompletionResult(7, "ls foo\\", asList()), completions);
+        assertEquals(new CompletionResult(6, "ls foo", asList("foo\\", "foobar\\")), completions);
 
         // Fully match of one dir with trailing slash -> list all with trailing slash
         completions = completor.getCompletions("ls foo\\", 7, executableLocator, executionContext);
         assertEquals(new CompletionResult(12, "ls foo\\Notes", asList("foo\\Notes.txt", "foo\\Notes_old.txt")), completions);
+
+        // Partial match of one file -> complete with trailing space
+        completions = completor.getCompletions("ls foo\\Notes.", 13, executableLocator, executionContext);
+        assertEquals(new CompletionResult(17, "ls foo\\Notes.txt ", asList()), completions);
+
+        // Fully match of one file -> complete with trailing space
+        completions = completor.getCompletions("ls foo\\Notes.txt", 16, executableLocator, executionContext);
+        assertEquals(new CompletionResult(17, "ls foo\\Notes.txt ", asList()), completions);
     }
 
     @Test
@@ -111,16 +127,22 @@ public class PathCompletionSpecTest {
         // Empty -> Match all dirs -> does not make sense for absolute paths
 
         // Partial match of one dir -> complete with trailing slash
-        command = "ls " + resolveAbsolute("f");
+        command = "ls " + resolveAbsolute("b");
         completions = completor.getCompletions(command, command.length(), executableLocator, executionContext);
-        assertEquals("ls " + resolveAbsoluteWithTrailingSlash("foo"), completions.text);
+        assertEquals("ls " + resolveAbsoluteWithTrailingSlash("bar"), completions.text);
         assertEquals(Collections.<String>emptyList(), completions.completionCandidates);
 
         // Fully match of one dir -> complete with trailing slash
+        command = "ls " + resolveAbsolute("bar");
+        completions = completor.getCompletions(command, command.length(), executableLocator, executionContext);
+        assertEquals("ls " + resolveAbsoluteWithTrailingSlash("bar"), completions.text);
+        assertEquals(Collections.<String>emptyList(), completions.completionCandidates);
+
+        // Fully match of one dir whose name is also contained in other dirs name -> list all with trailing slash
         command = "ls " + resolveAbsolute("foo");
         completions = completor.getCompletions(command, command.length(), executableLocator, executionContext);
-        assertEquals("ls " + resolveAbsoluteWithTrailingSlash("foo"), completions.text);
-        assertEquals(Collections.<String>emptyList(), completions.completionCandidates);
+        assertEquals("ls " + resolveAbsolute("foo"), completions.text);
+        assertEquals(asList(resolveAbsoluteWithTrailingSlash("foo"), resolveAbsoluteWithTrailingSlash("foobar")), completions.completionCandidates);
 
         // Fully match of one dir with trailing slash -> list all with trailing slash
         command = "ls " + resolveAbsoluteWithTrailingSlash("foo");

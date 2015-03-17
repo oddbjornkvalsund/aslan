@@ -70,7 +70,7 @@ public class PathCompletionSpec extends CompletionSpec {
                         if (argument.endsWith(FILE_SEPARATOR)) {
                             stream = Files.list(absolutePath);
                         } else {
-                            stream = Stream.of(absolutePath);
+                            stream = Files.list(absolutePath.getParent()).filter(p -> p.getFileName().toString().startsWith(absolutePath.getFileName().toString()));
                         }
                     } else {
                         stream = Stream.empty();
