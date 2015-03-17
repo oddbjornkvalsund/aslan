@@ -90,9 +90,9 @@ public class PathCompletionSpecTest {
         completions = completor.getCompletions("ls f", 4, executableLocator, executionContext);
         assertEquals(new CompletionResult(7, "ls foo\\", asList()), completions);
 
-        // TODO: Partial match of one dir starting with slash -> complete with trailing slash
-//        completions = completor.getCompletions("ls \\Us", 6, executableLocator, executionContext);
-//        assertEquals(new CompletionResult(7, "ls \\Users\\", asList()), completions);
+        // Partial match of one dir starting with slash -> complete with trailing slash
+        completions = completor.getCompletions("ls \\Us", 6, executableLocator, executionContext);
+        assertEquals(new CompletionResult(10, "ls \\Users\\", asList()), completions);
 
         // Fully match of one dir -> complete with trailing slash
         completions = completor.getCompletions("ls foo", 6, executableLocator, executionContext);

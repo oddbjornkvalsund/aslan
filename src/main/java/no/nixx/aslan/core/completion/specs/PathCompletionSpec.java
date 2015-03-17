@@ -5,6 +5,7 @@ import no.nixx.aslan.core.completion.CompletionSpec;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,7 +16,7 @@ import static java.util.stream.Collectors.toList;
 
 public class PathCompletionSpec extends CompletionSpec {
 
-    private final static String FILE_SEPARATOR = System.getProperty("file.separator");
+    private final static String FILE_SEPARATOR = FileSystems.getDefault().getSeparator();
 
     private final ExecutionContext executionContext;
 
@@ -56,12 +57,12 @@ public class PathCompletionSpec extends CompletionSpec {
 
     private Stream<Path> getMatchingPaths(String argument) {
         final Path workingDirectory = executionContext.getWorkingDirectory().asPath().toAbsolutePath();
-        final Path path = Paths.get(argument);
 
         try {
             if (argument.isEmpty()) {
                 return Files.list(workingDirectory).map(p -> p.subpath(workingDirectory.getNameCount(), p.getNameCount()));
             } else {
+                final Path path = Paths.get(argument);
                 final Path absolutePath = getResolved(argument);
                 final Stream<Path> stream;
                 if (Files.exists(absolutePath)) {
@@ -80,6 +81,9 @@ public class PathCompletionSpec extends CompletionSpec {
 
                 if (path.isAbsolute() || absolutePath.getNameCount() == 0) {
                     return stream;
+                } else if (isDriveAbsolute(path)) {
+                    final Path driveRoot = Paths.get(FILE_SEPARATOR);
+                    return stream.map(p -> driveRoot.resolve(p.subpath(0, p.getNameCount())));
                 } else {
                     return stream.map(p -> p.subpath(workingDirectory.getNameCount(), p.getNameCount()));
                 }
@@ -87,6 +91,10 @@ public class PathCompletionSpec extends CompletionSpec {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private boolean isDriveAbsolute(Path path) {
+        return !path.isAbsolute() && path.toString().startsWith(FILE_SEPARATOR);
     }
 
     private Path getResolved(String str) {
