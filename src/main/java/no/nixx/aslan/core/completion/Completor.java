@@ -49,27 +49,13 @@ public class Completor {
             final TemporaryCompletionResult temporaryCompletionResult = getCompletions(completionSpecRoot, arguments);
             final List<String> completions = temporaryCompletionResult.completions;
             if (completions.isEmpty()) {
-                if (isCompleteMatchWithCompleteAncestry(completionSpecRoot, arguments)) {
-                    return new CompletionResult(tabPosition + 1, command + " ", emptyList());
-                } else {
-                    return emptyCompletionResult;
-                }
+                return emptyCompletionResult;
             } else {
                 return createCompletionResult(command, tabPosition, lastOf(arguments), completions, temporaryCompletionResult.doAppendSpaceIfOnlyOneCompletion);
             }
         }
 
         return emptyCompletionResult;
-    }
-
-    private boolean isCompleteMatchWithCompleteAncestry(CompletionSpecRoot completionSpecRoot, List<String> arguments) {
-        if (arguments.isEmpty()) {
-            return false;
-        } else {
-            final List<CompletionSpec> completeMatchingNodes = findCompleteMatchingNodes(completionSpecRoot, lastOf(arguments));
-            final List<CompletionSpec> completeMatchWithCompleteAncestry = findNodesWithCompleteAncestry(completeMatchingNodes, arguments);
-            return completeMatchWithCompleteAncestry.size() > 0;
-        }
     }
 
     private CompletionResult createCompletionResult(String command, int tabPosition, String argumentToComplete, List<String> completions, boolean doAppendSpaceIfOnlyOneCompletion) {
@@ -128,9 +114,10 @@ public class Completor {
         return findMostDeeplyNestedCompletions(argumentToComplete, nodesWithCorrectOccurenceCount);
     }
 
+    @SuppressWarnings("SimplifiableIfStatement")
     private TemporaryCompletionResult findMostDeeplyNestedCompletions(String argumentToComplete, List<CompletionSpec> complectionSpecs) {
         if (complectionSpecs.isEmpty()) {
-            return new TemporaryCompletionResult(true, emptyList());
+            return new TemporaryCompletionResult(false, emptyList());
         }
 
         final Map<Integer, List<String>> completionSpecsByDepth = new TreeMap<>();

@@ -17,7 +17,7 @@ public class TestFilesCompletionSpec extends CompletionSpec {
 
     @Override
     public boolean isPartialMatch(String argument) {
-        return (argument.isEmpty() || getCompletions(argument).size() > 0) && !isCompleteMatch(argument);
+        return (argument.isEmpty() || getCompletions(argument).size() > 0);
     }
 
     @Override
@@ -32,6 +32,11 @@ public class TestFilesCompletionSpec extends CompletionSpec {
 
     public boolean canOccurOnlyOnce() {
         return false;
+    }
+
+    @Override
+    public boolean appendSpaceIfOnlyOneCompletion() {
+        return true;
     }
 
     @Override

@@ -41,7 +41,7 @@ public class Cd implements ShellUtil, Completable {
     @Override
     public CompletionSpecRoot getCompletionSpec(ExecutionContext executionContext) {
         return new CompletionSpecRoot(
-                new PathCompletionSpec(executionContext)
+                new PathCompletionSpec(executionContext, PathCompletionSpec.Type.DIRECTORIES)
         );
     }
 }
