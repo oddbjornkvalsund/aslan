@@ -24,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -76,9 +77,17 @@ public class AslanShell extends VBox {
         final Label label = new Label("> ");
         undecorate(label);
         executionContextFactory.workingDirectoryProperty().addListener((observable, oldValue, newValue) -> {
-            runLater(() -> label.setText(newValue.asPath().getFileName() + "> "));
+            runLater(() -> setLabelFromPath(label, newValue.asPath()));
         });
         return label;
+    }
+
+    private void setLabelFromPath(Label label, Path path) {
+        if (path.getFileName() == null) {
+            label.setText(path + "> ");
+        } else {
+            label.setText(path.getFileName() + "> ");
+        }
     }
 
     private VBox createConsole() {
