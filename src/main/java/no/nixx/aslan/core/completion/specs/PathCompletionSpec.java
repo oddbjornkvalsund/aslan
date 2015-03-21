@@ -14,17 +14,19 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 import static no.nixx.aslan.core.completion.specs.PathCompletionSpec.Type.FILES;
+import static no.nixx.aslan.core.utils.ListUtils.firstOf;
 
 public class PathCompletionSpec extends CompletionSpec {
 
     private final static String FILE_SEPARATOR = FileSystems.getDefault().getSeparator();
-    private final ExecutionContext executionContext;
+
     private final Type type;
+    private final ExecutionContext executionContext;
+
     private boolean doAppendSpace = false;
 
     public PathCompletionSpec(ExecutionContext executionContext) {
-        this.executionContext = executionContext;
-        this.type = Type.FILES_AND_DIRECTORIES;
+        this(executionContext, Type.FILES_AND_DIRECTORIES);
     }
 
     public PathCompletionSpec(ExecutionContext executionContext, Type type) {
@@ -40,7 +42,7 @@ public class PathCompletionSpec extends CompletionSpec {
     @Override
     public boolean isCompleteMatch(String argument) {
         final Path resolvedArgument = getResolved(argument);
-        final boolean exists = Files.exists(resolvedArgument);
+        final boolean fileExists = Files.exists(resolvedArgument);
         final boolean hasCorrectType;
         switch (type) {
             case FILES:
@@ -56,16 +58,16 @@ public class PathCompletionSpec extends CompletionSpec {
                 hasCorrectType = false;
         }
 
-        return exists && hasCorrectType;
+        return fileExists && hasCorrectType;
     }
 
     @Override
     public List<String> getCompletions(String argument) {
         final List<Path> matchingPaths = getMatchingPaths(argument).collect(toList());
 
-        doAppendSpace = (matchingPaths.size() == 1) && Files.isRegularFile(getResolved(matchingPaths.get(0)));
+        doAppendSpace = (matchingPaths.size() == 1) && Files.isRegularFile(getResolved(firstOf(matchingPaths)));
 
-        return matchingPaths.stream().map(p -> Files.isDirectory(getResolved(p)) ? p.toString() + FILE_SEPARATOR : p.toString()).collect(toList());
+        return matchingPaths.stream().map(path -> path.toString() + (Files.isDirectory(getResolved(path)) ? FILE_SEPARATOR : "")).collect(toList());
     }
 
     @Override
@@ -166,6 +168,7 @@ class TypeFilter {
         this.type = type;
     }
 
+    @SuppressWarnings("SimplifiableIfStatement")
     public boolean filterByType(Path p) {
         if (type == PathCompletionSpec.Type.DIRECTORIES) {
             return Files.isDirectory(p);
