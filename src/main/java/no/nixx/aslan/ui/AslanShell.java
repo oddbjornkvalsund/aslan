@@ -131,16 +131,21 @@ public class AslanShell extends VBox {
     }
 
     private void handleKeyPressed(KeyEvent event) {
-        if (event.isControlDown() && event.getCode().equals(L)) {
+        final KeyCode keyCode = event.getCode();
+        final boolean controlIsDown = event.isControlDown();
+        if (controlIsDown && keyCode.equals(L)) {
             clearConsole();
             event.consume();
-        } else if (event.getCode().equals(TAB)) {
+        } else if (controlIsDown && keyCode.equals(KeyCode.C)) {
+            inputTextField.clear();
+            event.consume();
+        } else if (keyCode.equals(TAB)) {
             tabComplete();
             event.consume();
         }
 
         previousKeyTimestamp = System.currentTimeMillis();
-        previousKeyCode = event.getCode();
+        previousKeyCode = keyCode;
     }
 
     private void tabComplete() {
