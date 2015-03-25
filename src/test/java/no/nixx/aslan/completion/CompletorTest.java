@@ -1,17 +1,21 @@
 package no.nixx.aslan.completion;
 
+import no.nixx.aslan.api.Executable;
 import no.nixx.aslan.completion.specs.TestFilesCompletionSpec;
 import no.nixx.aslan.core.ExecutableLocator;
 import no.nixx.aslan.core.completion.CompletionResult;
 import no.nixx.aslan.core.completion.CompletionSpec;
 import no.nixx.aslan.core.completion.CompletionSpecRoot;
 import no.nixx.aslan.core.completion.Completor;
+import no.nixx.aslan.util.TestExecutable;
 import no.nixx.aslan.util.TestExecutableLocator;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
 import static no.nixx.aslan.core.completion.CompletionSpec.keywords;
 import static no.nixx.aslan.core.completion.CompletionSpec.option;
 import static org.junit.Assert.assertEquals;
@@ -80,6 +84,27 @@ public class CompletorTest {
         result = completor.getCompletions("git add file f fileB", 14, executableLocator, null);
         assertEquals(new CompletionResult(17, "git add file file fileB", asList("fileA", "fileB", "fileC")), result);
 
+    }
+
+    @Test
+    public void testManyMatchingExecutablesNames() {
+        final CompletionSpecRoot completionSpecRoot = new CompletionSpecRoot();
+        final ExecutableLocator executableLocator = new ExecutableLocator() {
+            final List<String> executableNames = asList("foo", "foobar");
+
+            @Override
+            public Executable lookupExecutable(String name) {
+                return new TestExecutable(completionSpecRoot);
+            }
+
+            @Override
+            public List<String> findExecutableCandidates(String name) {
+                return executableNames.stream().filter(ec -> ec.startsWith(name)).collect(toList());
+            }
+        };
+
+        final CompletionResult result = completor.getCompletions("foo", 3, executableLocator, null);
+        assertEquals(new CompletionResult(3, "foo", asList("foo", "foobar")), result);
     }
 
     private CompletionSpec files() {

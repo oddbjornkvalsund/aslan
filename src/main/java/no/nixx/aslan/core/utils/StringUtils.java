@@ -30,7 +30,7 @@ public class StringUtils {
 
         final String sampleString = firstOf(strings);
         final MutableInteger length = new MutableInteger();
-        while (strings.stream().allMatch(c -> c.startsWith(sampleString.substring(0, length.value)))) {
+        while (strings.stream().allMatch(c -> c.length() >= length.value && c.startsWith(sampleString.substring(0, length.value)))) {
             length.value++;
         }
 

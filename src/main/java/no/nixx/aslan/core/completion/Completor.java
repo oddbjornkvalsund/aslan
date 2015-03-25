@@ -27,13 +27,13 @@ public class Completor {
 
         final String executableName = commandToComplete.getExecutableName();
         final Executable executable = executableLocator.lookupExecutable(executableName);
-        if (executable == null) {
-            final List<String> executableCandidates = executableLocator.findExecutableCandidates(executableName);
-            if (executableCandidates.isEmpty()) {
-                return emptyCompletionResult;
-            } else {
-                return createCompletionResult(command, tabPosition, executableName, executableCandidates, true);
-            }
+        final List<String> executableCandidates = executableLocator.findExecutableCandidates(executableName);
+        if (executableCandidates.isEmpty()) {
+            return emptyCompletionResult;
+        } else if (executable == null && executableCandidates.size() == 1) {
+            return createCompletionResult(command, tabPosition, executableName, executableCandidates, true);
+        } else if (executable != null && executableCandidates.size() > 1) {
+            return createCompletionResult(command, tabPosition, executableName, executableCandidates, true);
         }
 
         if (executable instanceof Completable) {
