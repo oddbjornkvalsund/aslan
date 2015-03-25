@@ -28,6 +28,12 @@ public class CompletionResult {
                 '}';
     }
 
+
+    @Override
+    public int hashCode() {
+        return new Integer(tabPosition).hashCode() + text.hashCode() + completionCandidates.hashCode();
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof CompletionResult) {

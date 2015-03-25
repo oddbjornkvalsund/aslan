@@ -15,11 +15,8 @@ public class ExecutionContextFactoryImpl implements ExecutionContextFactory {
 
     private WorkingDirectory workingDirectory;
 
-    public ExecutionContextFactoryImpl(WorkingDirectory initialWorkingDirectory, Map<String, String>... initialVariableSets) {
+    public ExecutionContextFactoryImpl(WorkingDirectory initialWorkingDirectory) {
         this.workingDirectory = checkNotNull(initialWorkingDirectory);
-        for (Map<String, String> initialVariableSet : checkNotNull(initialVariableSets)) {
-            this.variables.putAll(checkNotNull(initialVariableSet));
-        }
     }
 
     public boolean isVariableSet(String name) {

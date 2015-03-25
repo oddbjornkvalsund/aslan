@@ -13,18 +13,18 @@ import java.util.stream.Collectors;
 
 public class ExecutableLocatorImpl implements ExecutableLocator {
 
-    final Map<String, Class<? extends Executable>> map = new HashMap<String, Class<? extends Executable>>() {
-        {
-            put("cd", Cd.class);
-            put("ls", Ls.class);
-            put("grep", Grep.class);
-            put("echo", Echo.class);
-            put("cat", Cat.class);
-            put("set", Set.class);
-            put("unset", Unset.class);
-            put("failwhenrun", FailWhenRun.class);
-        }
-    };
+    final Map<String, Class<? extends Executable>> map = new HashMap<>();
+
+    {
+        map.put("cd", Cd.class);
+        map.put("ls", Ls.class);
+        map.put("grep", Grep.class);
+        map.put("echo", Echo.class);
+        map.put("cat", Cat.class);
+        map.put("set", Set.class);
+        map.put("unset", Unset.class);
+        map.put("failwhenrun", FailWhenRun.class);
+    }
 
     @Override
     public Executable lookupExecutable(String name) {
