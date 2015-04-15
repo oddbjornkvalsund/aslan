@@ -79,7 +79,28 @@ public class CompletorTest {
 
         result = completor.getCompletions("git add file f fileB", 14, executableLocator, null);
         assertEquals(new CompletionResult(17, "git add file file fileB", asList("fileA", "fileB", "fileC")), result);
+    }
 
+    @Test
+    public void testCompletionInPipeline() {
+        CompletionResult result;
+
+        result = completor.getCompletions("git | git", 9, executableLocator, null);
+        assertEquals(new CompletionResult(10, "git | git ", Collections.<String>emptyList()), result);
+
+        result = completor.getCompletions("echo foo | git add f", 20, executableLocator, null);
+        assertEquals(new CompletionResult(24, "echo foo | git add file ", Collections.<String>emptyList()), result);
+    }
+
+    @Test
+    public void testCompletionInCommandSubstitution() {
+        CompletionResult result;
+
+        result = completor.getCompletions("echo $(git add f", 16, executableLocator, null);
+        assertEquals(new CompletionResult(20, "echo $(git add file ", Collections.<String>emptyList()), result);
+
+        result = completor.getCompletions("echo $(echo $(echo | git add f", 30, executableLocator, null);
+        assertEquals(new CompletionResult(34, "echo $(echo $(echo | git add file ", Collections.<String>emptyList()), result);
     }
 
     private CompletionSpec files() {

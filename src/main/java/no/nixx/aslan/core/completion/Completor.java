@@ -9,6 +9,7 @@ import no.nixx.aslan.pipeline.model.Pipeline;
 
 import java.util.*;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static no.nixx.aslan.core.utils.ListUtils.*;
@@ -42,7 +43,7 @@ public class Completor {
 
             final List<String> arguments = getArguments(commandUpToTab, commandToComplete);
             if (arguments.isEmpty()) {
-                return new CompletionResult(executableName.length() + 1, executableName + " ", emptyList());
+                return createCompletionResult(command, tabPosition, "", asList(""), true);
             }
 
             // TODO: Add quotation marks to completions containing spaces
@@ -68,10 +69,13 @@ public class Completor {
     }
 
     private Command getCommandToComplete(String commandUpToTab) {
+        final PartialCommandExtractor partialCommandExtractor = new PartialCommandExtractor();
+        final String partialCommand = partialCommandExtractor.getLastCommand(commandUpToTab);
+
         final Pipeline pipeline;
         try {
             final PipelineParser parser = new PipelineParser();
-            pipeline = parser.parseCommand(commandUpToTab);
+            pipeline = parser.parseCommand(partialCommand);
         } catch (Exception e) {
             return null;
         }
