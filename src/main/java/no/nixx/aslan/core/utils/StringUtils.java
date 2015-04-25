@@ -36,6 +36,54 @@ public class StringUtils {
 
         return sampleString.substring(0, (length.value == 0) ? 0 : (length.value - 1));
     }
+
+    public static String completeOpenQuotes(String s) {
+        if (inSingleQuotes(s)) {
+            return s + "'";
+        } else if (inDoubleQuotes(s)) {
+            return s + "\"";
+        } else {
+            return s;
+        }
+    }
+
+    public static boolean inSingleQuotes(String s) {
+        boolean inSingleQuotes = false;
+        boolean inDoubleQuotes = false;
+
+        for (char c : s.toCharArray()) {
+            if (c == '\'') {
+                if (!inDoubleQuotes) {
+                    inSingleQuotes = !inSingleQuotes;
+                }
+            } else if (c == '\"') {
+                if (!inSingleQuotes) {
+                    inDoubleQuotes = !inDoubleQuotes;
+                }
+            }
+        }
+
+        return inSingleQuotes;
+    }
+
+    public static boolean inDoubleQuotes(String s) {
+        boolean inSingleQuotes = false;
+        boolean inDoubleQuotes = false;
+
+        for (char c : s.toCharArray()) {
+            if (c == '\'') {
+                if (!inDoubleQuotes) {
+                    inSingleQuotes = !inSingleQuotes;
+                }
+            } else if (c == '\"') {
+                if (!inSingleQuotes) {
+                    inDoubleQuotes = !inDoubleQuotes;
+                }
+            }
+        }
+
+        return inDoubleQuotes;
+    }
 }
 
 class MutableInteger {

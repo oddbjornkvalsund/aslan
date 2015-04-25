@@ -3,6 +3,7 @@ package no.nixx.aslan.core.completion;
 import no.nixx.aslan.api.Executable;
 import no.nixx.aslan.api.ExecutionContext;
 import no.nixx.aslan.core.ExecutableLocator;
+import no.nixx.aslan.core.utils.StringUtils;
 import no.nixx.aslan.pipeline.PipelineParser;
 import no.nixx.aslan.pipeline.model.Command;
 import no.nixx.aslan.pipeline.model.Pipeline;
@@ -12,8 +13,8 @@ import java.util.*;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
-import static no.nixx.aslan.core.completion.PartialQuotesCompletor.inDoubleQuotes;
-import static no.nixx.aslan.core.completion.PartialQuotesCompletor.inSingleQuotes;
+import static no.nixx.aslan.core.utils.StringUtils.inDoubleQuotes;
+import static no.nixx.aslan.core.utils.StringUtils.inSingleQuotes;
 import static no.nixx.aslan.core.utils.ListUtils.*;
 import static no.nixx.aslan.core.utils.StringUtils.getCommonStartOfStrings;
 
@@ -117,7 +118,7 @@ public class Completor {
 
     private Command getCommandToComplete(String commandUpToTab) {
         final PartialCommandExtractor partialCommandExtractor = new PartialCommandExtractor();
-        final String partialCommand = PartialQuotesCompletor.completeOpenQuotes(partialCommandExtractor.getLastCommand(commandUpToTab));
+        final String partialCommand = StringUtils.completeOpenQuotes(partialCommandExtractor.getLastCommand(commandUpToTab));
 
         final Pipeline pipeline;
         try {
