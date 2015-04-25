@@ -12,6 +12,8 @@ import java.util.*;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static no.nixx.aslan.core.completion.PartialQuotesCompletor.inDoubleQuotes;
+import static no.nixx.aslan.core.completion.PartialQuotesCompletor.inSingleQuotes;
 import static no.nixx.aslan.core.utils.ListUtils.*;
 import static no.nixx.aslan.core.utils.StringUtils.getCommonStartOfStrings;
 
@@ -46,23 +48,68 @@ public class Completor {
                 return createCompletionResult(command, tabPosition, "", asList(""), true);
             }
 
-            // TODO: Add quotation marks to completions containing spaces
-            final TemporaryCompletionResult temporaryCompletionResult = getCompletions(completionSpecRoot, arguments);
-            final List<String> completions = temporaryCompletionResult.completions;
-            if (completions.isEmpty()) {
-                return emptyCompletionResult;
+            final TemporaryCompletionResult partialCompletionResult = getCompletions(completionSpecRoot, arguments);
+            final List<String> partialCompletions = partialCompletionResult.completions;
+            if (partialCompletions.isEmpty()) {
+                final TemporaryCompletionResult completeCompletionResult = getCompleteCompletions(completionSpecRoot, arguments);
+                final List<String> completeCompletions = completeCompletionResult.completions;
+                if (completeCompletions.isEmpty()) {
+                    return emptyCompletionResult;
+                } else {
+                    return createCompletionResult(command, tabPosition, "", asList(""), completeCompletionResult.doAppendQuoteAndSpaceIfOnlyOneCompletion);
+                }
             } else {
-                return createCompletionResult(command, tabPosition, lastOf(arguments), completions, temporaryCompletionResult.doAppendSpaceIfOnlyOneCompletion);
+                return createCompletionResult(command, tabPosition, lastOf(arguments), partialCompletions, partialCompletionResult.doAppendQuoteAndSpaceIfOnlyOneCompletion);
             }
         }
 
         return emptyCompletionResult;
     }
 
-    private CompletionResult createCompletionResult(String command, int tabPosition, String argumentToComplete, List<String> completions, boolean doAppendSpaceIfOnlyOneCompletion) {
+    private CompletionResult createCompletionResult(String command, int tabPosition, String argumentToComplete, List<String> completions, boolean doAppendQuoteAndSpaceIfOnlyOneCompletion) {
         final boolean onlyOneCompletion = (completions.size() == 1);
-        final int idx = command.substring(0, tabPosition).lastIndexOf(argumentToComplete);
-        final String completion = onlyOneCompletion ? (firstOf(completions) + (doAppendSpaceIfOnlyOneCompletion ? " " : "")) : getCommonStartOfStrings(completions);
+        final String commmandUpToTab = command.substring(0, tabPosition);
+        final int idx = commmandUpToTab.lastIndexOf(argumentToComplete);
+        final boolean inSingleQuotes = inSingleQuotes(commmandUpToTab);
+        final boolean inDoubleQuotes = inDoubleQuotes(commmandUpToTab);
+        final String completion;
+        if (inDoubleQuotes) {
+            if (onlyOneCompletion) {
+                completion = firstOf(completions) + ((doAppendQuoteAndSpaceIfOnlyOneCompletion) ? "\" " : "");
+            } else {
+                completion = getCommonStartOfStrings(completions);
+                for (int i = 0; i < completions.size(); i++) {
+                    completions.set(i, "\"" + completions.get(i) + "\"");
+                }
+            }
+        } else if (inSingleQuotes) {
+            if (onlyOneCompletion) {
+                completion = firstOf(completions) + ((doAppendQuoteAndSpaceIfOnlyOneCompletion) ? "\' " : "");
+            } else {
+                completion = getCommonStartOfStrings(completions);
+                for (int i = 0; i < completions.size(); i++) {
+                    completions.set(i, "\'" + completions.get(i) + "\'");
+                }
+            }
+        } else {
+            if (onlyOneCompletion) {
+                if (firstOf(completions).contains(" ")) {
+                    completion = "\"" + firstOf(completions) + ((doAppendQuoteAndSpaceIfOnlyOneCompletion) ? "\" " : "");
+                } else {
+                    completion = firstOf(completions) + ((doAppendQuoteAndSpaceIfOnlyOneCompletion) ? " " : "");
+                }
+            } else {
+                if (completions.stream().anyMatch(s -> s.contains(" "))) {
+                    completion = "\"" + getCommonStartOfStrings(completions);
+                    for (int i = 0; i < completions.size(); i++) {
+                        completions.set(i, "\"" + completions.get(i) + "\"");
+                    }
+                } else {
+                    completion = getCommonStartOfStrings(completions);
+                }
+            }
+        }
+
         final String newText = command.substring(0, idx) + completion + command.substring(idx + argumentToComplete.length());
         final int newTabPosition = tabPosition + (completion.length() - argumentToComplete.length());
         return new CompletionResult(newTabPosition, newText, onlyOneCompletion ? emptyList() : completions);
@@ -70,7 +117,7 @@ public class Completor {
 
     private Command getCommandToComplete(String commandUpToTab) {
         final PartialCommandExtractor partialCommandExtractor = new PartialCommandExtractor();
-        final String partialCommand = partialCommandExtractor.getLastCommand(commandUpToTab);
+        final String partialCommand = PartialQuotesCompletor.completeOpenQuotes(partialCommandExtractor.getLastCommand(commandUpToTab));
 
         final Pipeline pipeline;
         try {
@@ -85,22 +132,20 @@ public class Completor {
 
     private List<String> getArguments(String commandUpToTab, Command commandToComplete) {
         final List<String> arguments = commandToComplete.getArgumentsAsStrings();
-        if (lastArgumentIsBlank(commandUpToTab, commandToComplete)) {
+        if (lastArgumentIsComplete(commandUpToTab, commandToComplete)) {
             arguments.add("");
         }
 
         return arguments;
     }
 
-    private boolean lastArgumentIsBlank(String command, Command commandToComplete) {
+    // TODO: Horrible method name. This method determines if the last argument of the command was completed or not
+    private boolean lastArgumentIsComplete(String command, Command commandToComplete) {
         final List<String> arguments = commandToComplete.getArgumentsAsStrings();
         if (arguments.isEmpty()) {
-            final String executableName = commandToComplete.getExecutableName();
-            return !command.endsWith(executableName);
-        } else {
-            final String lastParsedArgument = lastOf(arguments);
-            return !command.endsWith(lastParsedArgument);
-        }
+            return command.endsWith(" ");
+        } else
+            return !(inSingleQuotes(command) || inDoubleQuotes(command)) && command.endsWith(" ");
     }
 
     private TemporaryCompletionResult getCompletions(CompletionSpecRoot completionSpecRoot, List<String> arguments) {
@@ -113,6 +158,21 @@ public class Completor {
 
         final List<CompletionSpec> partialMatchingNodes = findPartialMatchingNodes(completionSpecRoot, argumentToComplete);
         final List<CompletionSpec> nodesWithCompleteAncestry = findNodesWithCompleteAncestry(partialMatchingNodes, arguments);
+        final List<CompletionSpec> nodesWithCorrectOccurenceCount = findNodesWithCorrectOccurenceCount(nodesWithCompleteAncestry, preceedingArguments);
+
+        return findMostDeeplyNestedCompletions(argumentToComplete, nodesWithCorrectOccurenceCount);
+    }
+
+    // TODO: Find better name and combine with method above!
+    private TemporaryCompletionResult getCompleteCompletions(CompletionSpecRoot completionSpecRoot, List<String> arguments) {
+        if (arguments.isEmpty()) {
+            return new TemporaryCompletionResult(true, emptyList());
+        }
+        final String argumentToComplete = lastOf(arguments);
+        final List<String> preceedingArguments = allButLastOf(arguments);
+
+        final List<CompletionSpec> completeMatchingNodes = findCompleteMatchingNodes(completionSpecRoot, argumentToComplete);
+        final List<CompletionSpec> nodesWithCompleteAncestry = findNodesWithCompleteAncestry(completeMatchingNodes, arguments);
         final List<CompletionSpec> nodesWithCorrectOccurenceCount = findNodesWithCorrectOccurenceCount(nodesWithCompleteAncestry, preceedingArguments);
 
         return findMostDeeplyNestedCompletions(argumentToComplete, nodesWithCorrectOccurenceCount);
@@ -140,7 +200,7 @@ public class Completor {
 
         final boolean doAppendSpaceIfOnlyOneCompletion;
         if (allCompletions.size() == 1 && complectionSpecs.size() == 1) {
-            doAppendSpaceIfOnlyOneCompletion = firstOf(complectionSpecs).appendSpaceIfOnlyOneCompletion();
+            doAppendSpaceIfOnlyOneCompletion = firstOf(complectionSpecs).appendQuoteAndSpaceIfOnlyOneCompletion();
         } else {
             doAppendSpaceIfOnlyOneCompletion = true;
         }
@@ -212,11 +272,11 @@ public class Completor {
     }
 
     private class TemporaryCompletionResult {
-        public final boolean doAppendSpaceIfOnlyOneCompletion;
+        public final boolean doAppendQuoteAndSpaceIfOnlyOneCompletion;
         public final List<String> completions;
 
-        TemporaryCompletionResult(boolean doAppendSpaceIfOnlyOneCompletion, List<String> completions) {
-            this.doAppendSpaceIfOnlyOneCompletion = doAppendSpaceIfOnlyOneCompletion;
+        TemporaryCompletionResult(boolean doAppendQuoteAndSpaceIfOnlyOneCompletion, List<String> completions) {
+            this.doAppendQuoteAndSpaceIfOnlyOneCompletion = doAppendQuoteAndSpaceIfOnlyOneCompletion;
             this.completions = completions;
         }
     }

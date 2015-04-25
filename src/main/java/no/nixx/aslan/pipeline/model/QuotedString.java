@@ -28,6 +28,32 @@ public class QuotedString extends Argument {
         }
     }
 
+    public boolean isExpandableWithoutCommmandExecution() {
+        for (Component component : components) {
+            if (component.argument.isVariableSubstitution() || component.argument.isCommandSubstitution()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public String getExpandedText() {
+        final StringBuilder sb = new StringBuilder(getText());
+
+        int offset = 0;
+        for (Component component : components) {
+            if (component.argument.isLiteral()) {
+                final Literal literal = (Literal) component.argument;
+                sb.insert(component.position + offset, literal.text);
+            }
+
+            // TODO: Support VariableSubstitution?
+        }
+
+        return sb.toString();
+    }
+
     public String getText() {
         return text.toString();
     }

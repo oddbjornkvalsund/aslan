@@ -15,7 +15,7 @@ public class WorkingDirectoryImpl implements WorkingDirectory {
     }
 
     public WorkingDirectoryImpl(Path path) {
-        if (Files.exists(path) && Files.isDirectory(path)) {
+        if (Files.isDirectory(path)) {
             this.path = path;
         } else {
             throw new IllegalArgumentException("Not a directory: " + path);

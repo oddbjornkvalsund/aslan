@@ -37,9 +37,17 @@ public class Command {
 
         for (Argument argument : allButFirstOf(this.arguments)) {
             if (argument.isLiteral()) {
-                argumentsAsStrings.add(((Literal) argument).text);
+                final Literal literal = (Literal) argument;
+                argumentsAsStrings.add(literal.text);
+            } else if (argument.isQuotedString()) {
+                final QuotedString quotedString = (QuotedString) argument;
+                if (quotedString.isExpandableWithoutCommmandExecution()) {
+                    argumentsAsStrings.add(quotedString.getExpandedText());
+                } else {
+                    throw new IllegalArgumentException("QuotedString can not be expanded without command execution: " + argument);
+                }
             } else {
-                throw new IllegalArgumentException("Executable name not a literal: " + argument);
+                throw new IllegalArgumentException("Argument not a literal or quoted string: " + argument);
             }
         }
 

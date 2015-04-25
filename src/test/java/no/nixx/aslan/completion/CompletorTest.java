@@ -34,6 +34,12 @@ public class CompletorTest {
                     )
             ),
             option(
+                    "space",
+                    option("one space"),
+                    option("and two spaces")
+
+            ),
+            option(
                     "remove"
             )
     );
@@ -50,13 +56,16 @@ public class CompletorTest {
         assertEquals(new CompletionResult(4, "git ", Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("git ", 4, executableLocator, null);
-        assertEquals(new CompletionResult(4, "git ", asList("add", "remove")), result);
+        assertEquals(new CompletionResult(4, "git ", asList("add", "space", "remove")), result);
 
         result = completor.getCompletions("git a", 5, executableLocator, null);
         assertEquals(new CompletionResult(8, "git add ", Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("git r", 5, executableLocator, null);
         assertEquals(new CompletionResult(11, "git remove ", Collections.<String>emptyList()), result);
+
+        result = completor.getCompletions("git add", 7, executableLocator, null);
+        assertEquals(new CompletionResult(8, "git add ", Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("git add ", 8, executableLocator, null);
         assertEquals(new CompletionResult(13, "git add file ", Collections.<String>emptyList()), result);
@@ -105,6 +114,93 @@ public class CompletorTest {
 
         result = completor.getCompletions("echo $(echo $(echo | git add f", 30, executableLocator, null);
         assertEquals(new CompletionResult(34, "echo $(echo $(echo | git add file ", Collections.<String>emptyList()), result);
+    }
+
+    @Test
+    public void testCompletionWithSpaces() {
+        CompletionResult result;
+
+        result = completor.getCompletions("git space one", 13, executableLocator, null);
+        assertEquals(new CompletionResult(22, "git space \"one space\" ", Collections.<String>emptyList()), result);
+
+        result = completor.getCompletions("git space ", 10, executableLocator, null);
+        assertEquals(new CompletionResult(11, "git space \"", asList("\"one space\"", "\"and two spaces\"")), result);
+
+        result = completor.getCompletions("git space \"", 11, executableLocator, null);
+        assertEquals(new CompletionResult(11, "git space \"", asList("\"one space\"", "\"and two spaces\"")), result);
+
+        result = completor.getCompletions("git space \"one space\"", 21, executableLocator, null);
+        assertEquals(new CompletionResult(22, "git space \"one space\" ", Collections.<String>emptyList()), result);
+    }
+
+
+    @Test
+    public void testCompletionWithSpacesAndAppendingOfSpaceAndQuotes() {
+        final CompletionSpecRoot root = new CompletionSpecRoot(
+                new CompletionSpec() {
+
+                    final String completion = "dir with spaces\\";
+
+                    @Override
+                    public boolean isPartialMatch(String argument) {
+                        return completion.startsWith(argument) && !isCompleteMatch(argument);
+                    }
+
+                    @Override
+                    public boolean isCompleteMatch(String argument) {
+                        return completion.equals(argument);
+                    }
+
+                    @Override
+                    public List<String> getCompletions(String argument) {
+                        return asList(completion);
+                    }
+
+                    @Override
+                    public boolean appendQuoteAndSpaceIfOnlyOneCompletion() {
+                        return false;
+                    }
+                },
+                new CompletionSpec() {
+
+                    final String completion = "file with spaces";
+
+                    @Override
+                    public boolean isPartialMatch(String argument) {
+                        return completion.startsWith(argument) && !isCompleteMatch(argument);
+                    }
+
+                    @Override
+                    public boolean isCompleteMatch(String argument) {
+                        return completion.equals(argument);
+                    }
+
+                    @Override
+                    public List<String> getCompletions(String argument) {
+                        return asList(completion);
+                    }
+
+                    @Override
+                    public boolean appendQuoteAndSpaceIfOnlyOneCompletion() {
+                        return true;
+                    }
+                }
+        );
+
+        final ExecutableLocator executableLocator = new TestExecutableLocator("foo", root);
+
+        CompletionResult result;
+        result = completor.getCompletions("foo d", 5, executableLocator, null);
+        assertEquals(new CompletionResult(21, "foo \"dir with spaces\\", Collections.<String>emptyList()), result);
+
+        result = completor.getCompletions("foo \"d", 6, executableLocator, null);
+        assertEquals(new CompletionResult(21, "foo \"dir with spaces\\", Collections.<String>emptyList()), result);
+
+        result = completor.getCompletions("foo f", 5, executableLocator, null);
+        assertEquals(new CompletionResult(23, "foo \"file with spaces\" ", Collections.<String>emptyList()), result);
+
+        result = completor.getCompletions("foo \"f", 6, executableLocator, null);
+        assertEquals(new CompletionResult(23, "foo \"file with spaces\" ", Collections.<String>emptyList()), result);
     }
 
     @Test

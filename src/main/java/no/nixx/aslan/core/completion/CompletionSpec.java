@@ -39,7 +39,7 @@ public abstract class CompletionSpec {
         return true;
     }
 
-    public boolean appendSpaceIfOnlyOneCompletion() {
+    public boolean appendQuoteAndSpaceIfOnlyOneCompletion() {
         return true;
     }
 
