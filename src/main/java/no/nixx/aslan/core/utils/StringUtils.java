@@ -10,6 +10,10 @@ public class StringUtils {
         return string.replaceAll("[\r\n]+$", "");
     }
 
+    public static String removeTrailingSpaces(String string) {
+        return string.replaceAll("\\s+$", "");
+    }
+    
     public static String join(Iterable<?> elements, String separator) {
         final StringBuilder sb = new StringBuilder();
         final Iterator<?> iterator = elements.iterator();

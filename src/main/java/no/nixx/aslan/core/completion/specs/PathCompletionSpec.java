@@ -15,6 +15,8 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 import static no.nixx.aslan.core.completion.specs.PathCompletionSpec.Type.FILES;
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
+import static no.nixx.aslan.core.utils.StringUtils.removeTrailingSpaces;
+import static no.nixx.aslan.core.utils.SystemUtils.isWindows;
 
 public class PathCompletionSpec extends CompletionSpec {
 
@@ -92,14 +94,16 @@ public class PathCompletionSpec extends CompletionSpec {
                         .filter(typeFilter::filterByType)
                         .map(p -> p.subpath(workingDirectory.getNameCount(), p.getNameCount()));
             } else {
-                final Path path = Paths.get(argument);
-                final Path absolutePath = getResolved(argument);
+                // Windows does not allow trailing spaces in file names and Paths.get() throws an exception
+                final String sanitizedArgument = isWindows() ? removeTrailingSpaces(argument) : argument;
+                final Path path = Paths.get(sanitizedArgument);
+                final Path absolutePath = getResolved(sanitizedArgument);
                 final NameFilter nameFilter = new NameFilter(absolutePath.getFileName());
 
                 final Stream<Path> stream;
                 if (Files.exists(absolutePath)) {
                     if (Files.isDirectory(absolutePath)) {
-                        if (argument.endsWith(FILE_SEPARATOR)) {
+                        if (sanitizedArgument.endsWith(FILE_SEPARATOR)) {
                             stream = Files
                                     .list(absolutePath)
                                     .filter(typeFilter::filterByType);
