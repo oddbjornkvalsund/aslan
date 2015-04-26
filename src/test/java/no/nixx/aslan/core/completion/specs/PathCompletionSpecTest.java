@@ -89,39 +89,39 @@ public class PathCompletionSpecTest {
 
         // Empty -> Match all dirs -> list all with trailing slash
         completions = completor.getCompletions("ls ", 3, executableLocator, executionContext);
-        assertEquals(new CompletionResult(3, "ls ", asList("bar\\", "foo\\", "foobar\\")), completions);
+        assertEquals(new CompletionResult("ls ", 3, asList("bar\\", "foo\\", "foobar\\")), completions);
 
         // Partial match of one dir -> complete with trailing slash
         completions = completor.getCompletions("ls b", 4, executableLocator, executionContext);
-        assertEquals(new CompletionResult(7, "ls bar\\", asList()), completions);
+        assertEquals(new CompletionResult("ls bar\\", 7, asList()), completions);
 
         // Partial match of one dir starting with slash -> complete with trailing slash
         completions = completor.getCompletions("ls \\Us", 6, executableLocator, executionContext);
-        assertEquals(new CompletionResult(10, "ls \\Users\\", asList()), completions);
+        assertEquals(new CompletionResult("ls \\Users\\", 10, asList()), completions);
 
         // Fully match of one dir -> complete with trailing slash
         completions = completor.getCompletions("ls bar", 6, executableLocator, executionContext);
-        assertEquals(new CompletionResult(7, "ls bar\\", asList()), completions);
+        assertEquals(new CompletionResult("ls bar\\", 7, asList()), completions);
 
         // Fully match of one dir whose name is also contained in other dirs name -> list all with trailing slash
         completions = completor.getCompletions("ls foo", 6, executableLocator, executionContext);
-        assertEquals(new CompletionResult(6, "ls foo", asList("foo\\", "foobar\\")), completions);
+        assertEquals(new CompletionResult("ls foo", 6, asList("foo\\", "foobar\\")), completions);
 
         // Fully match of one dir with trailing slash -> list all with trailing slash
         completions = completor.getCompletions("ls foo\\", 7, executableLocator, executionContext);
-        assertEquals(new CompletionResult(12, "ls foo\\Notes", asList("foo\\Notes.txt", "foo\\Notes_old.txt")), completions);
+        assertEquals(new CompletionResult("ls foo\\Notes", 12, asList("foo\\Notes.txt", "foo\\Notes_old.txt")), completions);
 
         // Partial match of one file -> complete with trailing space
         completions = completor.getCompletions("ls foo\\Notes.", 13, executableLocator, executionContext);
-        assertEquals(new CompletionResult(17, "ls foo\\Notes.txt ", asList()), completions);
+        assertEquals(new CompletionResult("ls foo\\Notes.txt ", 17, asList()), completions);
 
         // Fully match of one file -> complete with trailing space
         completions = completor.getCompletions("ls foo\\Notes.txt", 16, executableLocator, executionContext);
-        assertEquals(new CompletionResult(17, "ls foo\\Notes.txt ", asList()), completions);
+        assertEquals(new CompletionResult("ls foo\\Notes.txt ", 17, asList()), completions);
 
         // No match -> do not complete
         completions = completor.getCompletions("ls non", 6, executableLocator, executionContext);
-        assertEquals(new CompletionResult(6, "ls non", asList()), completions);
+        assertEquals(new CompletionResult("ls non", 6, asList()), completions);
     }
 
     @Test
@@ -167,19 +167,19 @@ public class PathCompletionSpecTest {
         CompletionResult completions;
 
         completions = completor.getCompletions("ls ", 3, executableLocator, executionContext);
-        assertEquals(new CompletionResult(3, "ls ", asList("bar\\", "foo\\", "foobar\\")), completions);
+        assertEquals(new CompletionResult("ls ", 3, asList("bar\\", "foo\\", "foobar\\")), completions);
 
         completions = completor.getCompletions("ls f", 4, executableLocator, executionContext);
-        assertEquals(new CompletionResult(6, "ls foo", asList("foo\\", "foobar\\")), completions);
+        assertEquals(new CompletionResult("ls foo", 6, asList("foo\\", "foobar\\")), completions);
 
         completions = completor.getCompletions("ls foo\\", 7, executableLocator, executionContext);
-        assertEquals(new CompletionResult(7, "ls foo\\", asList()), completions);
+        assertEquals(new CompletionResult("ls foo\\", 7, asList()), completions);
 
         completions = completor.getCompletions("ls foobar\\Foobar.txt", 20, executableLocator, executionContext);
-        assertEquals(new CompletionResult(20, "ls foobar\\Foobar.txt", asList()), completions);
+        assertEquals(new CompletionResult("ls foobar\\Foobar.txt", 20, asList()), completions);
 
         completions = completor.getCompletions("ls non", 6, executableLocator, executionContext);
-        assertEquals(new CompletionResult(6, "ls non", asList()), completions);
+        assertEquals(new CompletionResult("ls non", 6, asList()), completions);
     }
 
     @Test
@@ -190,13 +190,13 @@ public class PathCompletionSpecTest {
         CompletionResult completions;
 
         completions = completor.getCompletions("ls ", 3, executableLocator, executionContext);
-        assertEquals(new CompletionResult(3, "ls ", asList()), completions);
+        assertEquals(new CompletionResult("ls ", 3, asList()), completions);
 
         completions = completor.getCompletions("ls foo\\", 7, executableLocator, executionContext);
-        assertEquals(new CompletionResult(12, "ls foo\\Notes", asList("foo\\Notes.txt", "foo\\Notes_old.txt")), completions);
+        assertEquals(new CompletionResult("ls foo\\Notes", 12, asList("foo\\Notes.txt", "foo\\Notes_old.txt")), completions);
 
         completions = completor.getCompletions("ls non", 6, executableLocator, executionContext);
-        assertEquals(new CompletionResult(6, "ls non", asList()), completions);
+        assertEquals(new CompletionResult("ls non", 6, asList()), completions);
     }
 
     private String resolveAbsolute(String path) {

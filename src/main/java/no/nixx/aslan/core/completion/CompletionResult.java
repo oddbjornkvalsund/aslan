@@ -5,13 +5,13 @@ import java.util.List;
 import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 
 public class CompletionResult {
-    public final int tabPosition;
     public final String text;
+    public final int tabPosition;
     public final List<String> completionCandidates;
 
-    public CompletionResult(int tabPosition, String text, List<String> completionCandidates) {
-        this.tabPosition = tabPosition;
+    public CompletionResult(String text, int tabPosition, List<String> completionCandidates) {
         this.text = checkNotNull(text);
+        this.tabPosition = tabPosition;
         this.completionCandidates = checkNotNull(completionCandidates);
     }
 
@@ -22,8 +22,8 @@ public class CompletionResult {
     @Override
     public String toString() {
         return "CompletionResult{" +
-                "tabPosition=" + tabPosition +
-                ", text='" + text + '\'' +
+                "text='" + text + '\'' +
+                ", tabPosition=" + tabPosition +
                 ", completionCandidates=" + completionCandidates +
                 '}';
     }
@@ -31,14 +31,14 @@ public class CompletionResult {
 
     @Override
     public int hashCode() {
-        return new Integer(tabPosition).hashCode() + text.hashCode() + completionCandidates.hashCode();
+        return text.hashCode() + new Integer(tabPosition).hashCode() + completionCandidates.hashCode();
     }
 
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof CompletionResult) {
             final CompletionResult that = (CompletionResult) obj;
-            return tabPosition == that.tabPosition && text.equals(that.text) && completionCandidates.equals(that.completionCandidates);
+            return text.equals(that.text) && tabPosition == that.tabPosition && completionCandidates.equals(that.completionCandidates);
         }
 
         return false;

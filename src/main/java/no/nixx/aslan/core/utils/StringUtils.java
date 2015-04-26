@@ -84,6 +84,20 @@ public class StringUtils {
 
         return inDoubleQuotes;
     }
+
+    public static boolean containsWhiteSpace(String s) {
+        for (char c : s.toCharArray()) {
+            if (Character.isWhitespace(c) || Character.isSpaceChar(c)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean anyContainsWhiteSpace(List<String> strings) {
+        return strings.stream().anyMatch(StringUtils::containsWhiteSpace);
+    }
 }
 
 class MutableInteger {

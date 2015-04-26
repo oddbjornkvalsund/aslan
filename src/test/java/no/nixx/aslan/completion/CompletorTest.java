@@ -50,40 +50,40 @@ public class CompletorTest {
         CompletionResult result;
 
         result = completor.getCompletions("g", 1, executableLocator, null);
-        assertEquals(new CompletionResult(4, "git ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("git ", 4, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("git", 3, executableLocator, null);
-        assertEquals(new CompletionResult(4, "git ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("git ", 4, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("git ", 4, executableLocator, null);
-        assertEquals(new CompletionResult(4, "git ", asList("add", "space", "remove")), result);
+        assertEquals(new CompletionResult("git ", 4, asList("add", "space", "remove")), result);
 
         result = completor.getCompletions("git a", 5, executableLocator, null);
-        assertEquals(new CompletionResult(8, "git add ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("git add ", 8, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("git r", 5, executableLocator, null);
-        assertEquals(new CompletionResult(11, "git remove ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("git remove ", 11, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("git add", 7, executableLocator, null);
-        assertEquals(new CompletionResult(8, "git add ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("git add ", 8, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("git add ", 8, executableLocator, null);
-        assertEquals(new CompletionResult(13, "git add file ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("git add file ", 13, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("git add file f", 14, executableLocator, null);
-        assertEquals(new CompletionResult(17, "git add file file", asList("fileA", "fileB", "fileC")), result);
+        assertEquals(new CompletionResult("git add file file", 17, asList("fileA", "fileB", "fileC")), result);
 
         result = completor.getCompletions("git add file fileA", 18, executableLocator, null);
-        assertEquals(new CompletionResult(19, "git add file fileA ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("git add file fileA ", 19, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("git add file f --", 17, executableLocator, null);
-        assertEquals(new CompletionResult(23, "git add file f --verbos", asList("--verbosity", "--verbose")), result);
+        assertEquals(new CompletionResult("git add file f --verbos", 23, asList("--verbosity", "--verbose")), result);
 
         result = completor.getCompletions("git add file --verbosity ", 25, executableLocator, null);
-        assertEquals(new CompletionResult(25, "git add file --verbosity ", asList("low", "high")), result);
+        assertEquals(new CompletionResult("git add file --verbosity ", 25, asList("low", "high")), result);
 
         result = completor.getCompletions("git add file --verbosity high ", 30, executableLocator, null);
-        assertEquals(new CompletionResult(30, "git add file --verbosity high ", asList("--verbose", "fileA", "fileB", "fileC")), result);
+        assertEquals(new CompletionResult("git add file --verbosity high ", 30, asList("--verbose", "fileA", "fileB", "fileC")), result);
     }
 
     @Test
@@ -91,7 +91,7 @@ public class CompletorTest {
         CompletionResult result;
 
         result = completor.getCompletions("git add file f fileB", 14, executableLocator, null);
-        assertEquals(new CompletionResult(17, "git add file file fileB", asList("fileA", "fileB", "fileC")), result);
+        assertEquals(new CompletionResult("git add file file fileB", 17, asList("fileA", "fileB", "fileC")), result);
     }
 
     @Test
@@ -99,10 +99,10 @@ public class CompletorTest {
         CompletionResult result;
 
         result = completor.getCompletions("git | git", 9, executableLocator, null);
-        assertEquals(new CompletionResult(10, "git | git ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("git | git ", 10, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("echo foo | git add f", 20, executableLocator, null);
-        assertEquals(new CompletionResult(24, "echo foo | git add file ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("echo foo | git add file ", 24, Collections.<String>emptyList()), result);
     }
 
     @Test
@@ -110,10 +110,10 @@ public class CompletorTest {
         CompletionResult result;
 
         result = completor.getCompletions("echo $(git add f", 16, executableLocator, null);
-        assertEquals(new CompletionResult(20, "echo $(git add file ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("echo $(git add file ", 20, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("echo $(echo $(echo | git add f", 30, executableLocator, null);
-        assertEquals(new CompletionResult(34, "echo $(echo $(echo | git add file ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("echo $(echo $(echo | git add file ", 34, Collections.<String>emptyList()), result);
     }
 
     @Test
@@ -121,16 +121,16 @@ public class CompletorTest {
         CompletionResult result;
 
         result = completor.getCompletions("git space one", 13, executableLocator, null);
-        assertEquals(new CompletionResult(22, "git space \"one space\" ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("git space \"one space\" ", 22, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("git space ", 10, executableLocator, null);
-        assertEquals(new CompletionResult(11, "git space \"", asList("\"one space\"", "\"and two spaces\"")), result);
+        assertEquals(new CompletionResult("git space \"", 11, asList("\"one space\"", "\"and two spaces\"")), result);
 
         result = completor.getCompletions("git space \"", 11, executableLocator, null);
-        assertEquals(new CompletionResult(11, "git space \"", asList("\"one space\"", "\"and two spaces\"")), result);
+        assertEquals(new CompletionResult("git space \"", 11, asList("\"one space\"", "\"and two spaces\"")), result);
 
         result = completor.getCompletions("git space \"one space\"", 21, executableLocator, null);
-        assertEquals(new CompletionResult(22, "git space \"one space\" ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("git space \"one space\" ", 22, Collections.<String>emptyList()), result);
     }
 
 
@@ -191,16 +191,16 @@ public class CompletorTest {
 
         CompletionResult result;
         result = completor.getCompletions("foo d", 5, executableLocator, null);
-        assertEquals(new CompletionResult(21, "foo \"dir with spaces\\", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("foo \"dir with spaces\\", 21, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("foo \"d", 6, executableLocator, null);
-        assertEquals(new CompletionResult(21, "foo \"dir with spaces\\", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("foo \"dir with spaces\\", 21, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("foo f", 5, executableLocator, null);
-        assertEquals(new CompletionResult(23, "foo \"file with spaces\" ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("foo \"file with spaces\" ", 23, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("foo \"f", 6, executableLocator, null);
-        assertEquals(new CompletionResult(23, "foo \"file with spaces\" ", Collections.<String>emptyList()), result);
+        assertEquals(new CompletionResult("foo \"file with spaces\" ", 23, Collections.<String>emptyList()), result);
     }
 
     @Test
@@ -221,7 +221,7 @@ public class CompletorTest {
         };
 
         final CompletionResult result = completor.getCompletions("foo", 3, executableLocator, null);
-        assertEquals(new CompletionResult(3, "foo", asList("foo", "foobar")), result);
+        assertEquals(new CompletionResult("foo", 3, asList("foo", "foobar")), result);
     }
 
     private CompletionSpec files() {
