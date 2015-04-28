@@ -21,34 +21,33 @@ public class QuotedString extends Argument {
     }
 
     public void addComponent(Argument argument) {
-        if(argument.isCommandSubstitution() || argument.isVariableSubstitution()) {
+        if (argument.isCommandSubstitution() || argument.isVariableSubstitution()) {
             this.components.add(new Component(this.text.length(), argument));
         } else {
             throw new IllegalArgumentException("Invalid argument type: " + argument);
         }
     }
 
-    public boolean isExpandableWithoutCommmandExecution() {
-        for (Component component : components) {
-            if (component.argument.isVariableSubstitution() || component.argument.isCommandSubstitution()) {
-                return false;
-            }
-        }
-
-        return true;
+    @Override
+    public boolean isRenderableTextAvailableWithoutCommmandExecution() {
+        return components.stream().allMatch(c -> c.argument.isRenderableTextAvailableWithoutCommmandExecution());
     }
 
-    public String getExpandedText() {
+    @Override
+    public String getRenderableText() {
+        if (!isRenderableTextAvailableWithoutCommmandExecution()) {
+            throw new IllegalStateException("Renderable text is not available without commmand execution: " + this);
+        }
+
         final StringBuilder sb = new StringBuilder(getText());
 
         int offset = 0;
         for (Component component : components) {
-            if (component.argument.isLiteral()) {
-                final Literal literal = (Literal) component.argument;
-                sb.insert(component.position + offset, literal.text);
+            if (component.argument.isRenderableTextAvailableWithoutCommmandExecution()) {
+                final String renderableText = component.argument.getRenderableText();
+                sb.insert(component.position + offset, renderableText);
+                offset += renderableText.length();
             }
-
-            // TODO: Support VariableSubstitution?
         }
 
         return sb.toString();
@@ -94,7 +93,7 @@ public class QuotedString extends Argument {
 
         @Override
         public boolean equals(Object obj) {
-            if(obj instanceof Component) {
+            if (obj instanceof Component) {
                 final Component that = (Component) obj;
                 return this.position == that.position && this.argument.equals(that.argument);
             } else {

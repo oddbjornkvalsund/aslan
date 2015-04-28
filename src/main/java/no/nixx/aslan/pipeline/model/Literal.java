@@ -11,6 +11,16 @@ public class Literal extends Argument {
     }
 
     @Override
+    public boolean isRenderableTextAvailableWithoutCommmandExecution() {
+        return true;
+    }
+
+    @Override
+    public String getRenderableText() {
+        return text;
+    }
+
+    @Override
     public boolean isLiteral() {
         return true;
     }

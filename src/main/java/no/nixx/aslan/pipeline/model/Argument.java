@@ -2,6 +2,10 @@ package no.nixx.aslan.pipeline.model;
 
 public abstract class Argument {
 
+    public abstract boolean isRenderableTextAvailableWithoutCommmandExecution();
+
+    public abstract String getRenderableText();
+
     public boolean isLiteral() {
         return false;
     }
@@ -15,6 +19,10 @@ public abstract class Argument {
     }
 
     public boolean isVariableSubstitution() {
+        return false;
+    }
+
+    public boolean isCompositeArgument() {
         return false;
     }
 }

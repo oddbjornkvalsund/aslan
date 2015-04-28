@@ -34,23 +34,13 @@ public class Command {
     public List<String> getArgumentsAsStrings() {
         // TODO: Perhaps a bad idea!
         final List<String> argumentsAsStrings = new ArrayList<>();
-
         for (Argument argument : allButFirstOf(this.arguments)) {
-            if (argument.isLiteral()) {
-                final Literal literal = (Literal) argument;
-                argumentsAsStrings.add(literal.text);
-            } else if (argument.isQuotedString()) {
-                final QuotedString quotedString = (QuotedString) argument;
-                if (quotedString.isExpandableWithoutCommmandExecution()) {
-                    argumentsAsStrings.add(quotedString.getExpandedText());
-                } else {
-                    throw new IllegalArgumentException("QuotedString can not be expanded without command execution: " + argument);
-                }
+            if (argument.isRenderableTextAvailableWithoutCommmandExecution()) {
+                argumentsAsStrings.add(argument.getRenderableText());
             } else {
-                throw new IllegalArgumentException("Argument not a literal or quoted string: " + argument);
+                throw new IllegalArgumentException("Argument not renderable without command execution: " + argument);
             }
         }
-
         return argumentsAsStrings;
     }
 
@@ -58,10 +48,9 @@ public class Command {
         return unmodifiableList(arguments);
     }
 
-
     @Override
     public boolean equals(Object obj) {
-        if(obj instanceof Command) {
+        if (obj instanceof Command) {
             final Command that = (Command) obj;
             return this.arguments.equals(that.arguments);
         } else {

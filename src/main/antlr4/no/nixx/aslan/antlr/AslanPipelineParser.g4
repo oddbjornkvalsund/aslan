@@ -4,8 +4,7 @@ options { tokenVocab=AslanPipelineLexer; }
 
 pipeline    : cmd (pipe cmd)*;
 pipe        : PIPE;
-cmd         : (args|arg|space)+;
-args        : arg arg+;
+cmd         : (arg|space)+;
 arg         : (cs | vs | string | literal | ARG);
 space       : WS+;
 

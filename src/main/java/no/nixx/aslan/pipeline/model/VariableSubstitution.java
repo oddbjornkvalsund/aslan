@@ -10,13 +10,23 @@ public class VariableSubstitution extends Argument {
     }
 
     @Override
+    public boolean isRenderableTextAvailableWithoutCommmandExecution() {
+        return false;
+    }
+
+    @Override
+    public String getRenderableText() {
+        throw new IllegalStateException("Renderable text is not available without commmand execution: " + this);
+    }
+
+    @Override
     public boolean isVariableSubstitution() {
         return true;
     }
 
     @Override
     public boolean equals(Object obj) {
-        if(obj instanceof VariableSubstitution) {
+        if (obj instanceof VariableSubstitution) {
             final VariableSubstitution that = (VariableSubstitution) obj;
             return this.variableName.equals(that.variableName);
         } else {

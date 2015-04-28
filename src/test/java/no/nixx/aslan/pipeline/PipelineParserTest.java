@@ -127,6 +127,18 @@ public class PipelineParserTest {
         assertEquals(asList("foo"), csEchoCommand.getArgumentsAsStrings());
     }
 
+    @Test
+    public void testParseComplexArgument() {
+        final PipelineParser parser = new PipelineParser();
+        final Pipeline pipeline = parser.parseCommand("echo complex'single quoted'\"double quoted\"$(cs with'nested'\"complex\")${VS}");
+
+        assertEquals(1, pipeline.getCommandsUnmodifiable().size());
+
+        final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
+        assertEquals("echo", echoCommand.getExecutableName());
+        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
+    }
+
     @Test(expected = ParseException.class)
     public void testErrorHandling() {
         final PipelineParser parser = new PipelineParser();

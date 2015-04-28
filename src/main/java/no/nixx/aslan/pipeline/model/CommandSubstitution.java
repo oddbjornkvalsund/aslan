@@ -15,6 +15,16 @@ public class CommandSubstitution extends Argument {
     }
 
     @Override
+    public boolean isRenderableTextAvailableWithoutCommmandExecution() {
+        return false;
+    }
+
+    @Override
+    public String getRenderableText() {
+        throw new IllegalStateException("Renderable text is not available without commmand execution: " + this);
+    }
+
+    @Override
     public boolean isCommandSubstitution() {
         return true;
     }
