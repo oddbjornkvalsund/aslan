@@ -16,6 +16,11 @@ public class QuotedString extends Argument {
         this.components = new ArrayList<>();
     }
 
+    public QuotedString(String text, List<Component> components) {
+        this.text = new StringBuilder(text);
+        this.components = components;
+    }
+
     public void appendText(String text) {
         this.text.append(text);
     }
@@ -66,11 +71,20 @@ public class QuotedString extends Argument {
         return true;
     }
 
+
+    @Override
+    public String toString() {
+        return "QuotedString{" +
+                "text=" + text +
+                ", components=" + components +
+                '}';
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof QuotedString) {
             final QuotedString that = (QuotedString) obj;
-            return this.text.equals(that.text) && this.components.equals(that.components);
+            return this.text.toString().equals(that.text.toString()) && this.components.equals(that.components);
         } else {
             return false;
         }

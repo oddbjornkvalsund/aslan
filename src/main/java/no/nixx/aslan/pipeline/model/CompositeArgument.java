@@ -38,6 +38,14 @@ public class CompositeArgument extends Argument implements Iterable<Argument> {
         arguments.add(argument);
     }
 
+    public Argument get(int idx) {
+        return arguments.get(idx);
+    }
+
+    public int size() {
+        return arguments.size();
+    }
+
     public boolean isEmpty() {
         return arguments.isEmpty();
     }

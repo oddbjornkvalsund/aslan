@@ -22,21 +22,44 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
     private QuotedString quotedString;
 
     public Pipeline getPipeline() {
-        if (pipelineStack.size() != 1) {
+        if (pipelineStack.size() == 1) {
+            final Pipeline pipeline = pipelineStack.pop();
+            removeUnnecessaryCompositeArguments(pipeline);
+            return pipeline;
+        } else {
             throw new IllegalStateException("Not balanced!");
         }
-
-        final Pipeline pipeline = pipelineStack.pop();
-        reduceComplexArguments(pipeline);
-
-        return pipeline;
     }
 
-    private void reduceComplexArguments(Pipeline pipeline) {
+    // By default all arguments are added to the command as composite arguments. This method reduces the arguments to
+    // simpler argument types, if possible.
+    private void removeUnnecessaryCompositeArguments(Pipeline pipeline) {
         for (Command command : pipeline.getCommandsUnmodifiable()) {
             for (Argument argument : command.getArgumentsUnmodifiable()) {
                 if (argument.isRenderableTextAvailableWithoutCommmandExecution()) {
                     command.replaceArgument(argument, new Literal(argument.getRenderableText()));
+                } else if (argument.isCompositeArgument()) {
+                    final CompositeArgument compositeArgument = (CompositeArgument) argument;
+                    for (Argument ca : compositeArgument) {
+                        if (ca.isQuotedString()) {
+                            final QuotedString quotedString = (QuotedString) ca;
+                            for (QuotedString.Component component : quotedString.getComponentsUnmodifiable()) {
+                                if (component.argument.isCommandSubstitution()) {
+                                    final CommandSubstitution cs = (CommandSubstitution) component.argument;
+                                    removeUnnecessaryCompositeArguments(cs.getPipeline());
+                                } else if (component.argument.isCompositeArgument()) {
+                                    throw new IllegalStateException("Directly nested composite arguments should not be possible, this is a bug.");
+                                }
+                            }
+                        } else if (ca.isCommandSubstitution()) {
+                            final CommandSubstitution cs = (CommandSubstitution) ca;
+                            removeUnnecessaryCompositeArguments(cs.getPipeline());
+                        }
+                    }
+
+                    if (compositeArgument.size() == 1) {
+                        command.replaceArgument(argument, compositeArgument.get(0));
+                    }
                 }
             }
         }

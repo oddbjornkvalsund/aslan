@@ -3,6 +3,7 @@ package no.nixx.aslan.pipeline;
 import no.nixx.aslan.pipeline.model.*;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static java.util.Arrays.asList;
@@ -128,15 +129,24 @@ public class PipelineParserTest {
     }
 
     @Test
-    public void testParseComplexArgument() {
+    public void testParseCompositeArgument() {
         final PipelineParser parser = new PipelineParser();
         final Pipeline pipeline = parser.parseCommand("echo complex'single quoted'\"double quoted\"$(cs with'nested'\"complex\")${VS}");
-
         assertEquals(1, pipeline.getCommandsUnmodifiable().size());
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
         assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
+
+        final Argument argument = echoCommand.getArgumentsUnmodifiable().get(1);
+        assertTrue(argument.isCompositeArgument());
+        final CompositeArgument compositeArgument = (CompositeArgument) argument;
+        assertEquals(compositeArgument.size(), 5);
+        assertEquals(new Literal("complex"), compositeArgument.get(0));
+        assertEquals(new Literal("single quoted"), compositeArgument.get(1));
+        assertEquals(new QuotedString("double quoted", Collections.<QuotedString.Component>emptyList()), compositeArgument.get(2));
+        assertTrue(compositeArgument.get(3).isCommandSubstitution());
+        assertTrue(compositeArgument.get(4).isVariableSubstitution());
     }
 
     @Test(expected = ParseException.class)

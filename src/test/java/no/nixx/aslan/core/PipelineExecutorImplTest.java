@@ -123,12 +123,20 @@ public class PipelineExecutorImplTest {
     public void testCommandSubstitutionWithErrors() {
         final InputStream in = getEmptyInputStream();
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final ByteArrayOutputStream err = new ByteArrayOutputStream();
         final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, executionContextFactory, in, out, System.err);
         executor.execute(parser.parseCommand("echo $(echo fooooooo | failwhenrun | grep o)"));
 
         // The command substitution prints 4 characters before failing. The newline is added by the first "echo"
         assertEquals(format("fooo%n"), out.toString());
+    }
+
+    @Test
+    public void testCompositeArguments() {
+        final InputStream in = getEmptyInputStream();
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, executionContextFactory, in, out, System.err);
+        executor.execute(parser.parseCommand("echo foo-$(echo bar-$(echo zomg))\" some spaces \""));
+        assertEquals(format("foo-bar-zomg some spaces %n"), out.toString());
     }
 
     private ByteArrayInputStream getEmptyInputStream() {

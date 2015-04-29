@@ -47,86 +47,76 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     private void expandArguments(ExecutionContext context, Pipeline pipeline) {
         for (Command command : pipeline.getCommandsUnmodifiable()) {
             for (Argument argument : command.getArgumentsUnmodifiable()) {
-
-                if (argument.isCompositeArgument()) {
-                    if (argument.isRenderableTextAvailableWithoutCommmandExecution()) {
-                        command.replaceArgument(argument, new Literal(argument.getRenderableText()));
-                    } else {
-                        // TODO: Is this always true?
-                        // TODO: SUPERMESS - fix this!
-                        final CompositeArgument compositeArgument = (CompositeArgument) argument;
-                        final StringBuilder sb = new StringBuilder();
-                        for (Argument arg : compositeArgument) {
-                            if (arg.isLiteral()) {
-                                sb.append(((Literal) arg).text);
-                            } else if (arg.isCommandSubstitution()) {
-                                final CommandSubstitution cs = (CommandSubstitution) arg;
-                                expandArguments(context, cs.getPipeline());
-                                sb.append(getExpandedCommand(cs.getPipeline()).text);
-                            } else if (arg.isVariableSubstitution()) {
-                                final VariableSubstitution vs = (VariableSubstitution) arg;
-                                sb.append(getExpandedVariable(context, vs).text);
-                            } else if (arg.isQuotedString()) {
-                                final QuotedString quotedString = (QuotedString) arg;
-                                int offset = 0;
-                                final StringBuilder sb2 = new StringBuilder(quotedString.getText());
-                                for (QuotedString.Component component : quotedString.getComponentsUnmodifiable()) {
-                                    final String expandedComponentText;
-                                    if (component.argument.isVariableSubstitution()) {
-                                        final VariableSubstitution vs = (VariableSubstitution) component.argument;
-                                        final Literal expandedVariable = getExpandedVariable(context, vs);
-                                        expandedComponentText = expandedVariable.text;
-                                    } else if (component.argument.isCommandSubstitution()) {
-                                        final CommandSubstitution cs = (CommandSubstitution) component.argument;
-                                        expandArguments(context, cs.getPipeline());
-                                        final Literal expandedCommand = getExpandedCommand(cs.getPipeline());
-                                        expandedComponentText = expandedCommand.text;
-                                    } else {
-                                        throw new IllegalStateException("Illegal component type, expected VariableSubstitution or CommandSubstitution: " + component.argument);
-                                    }
-
-                                    sb2.insert(component.position + offset, expandedComponentText);
-                                    offset += expandedComponentText.length();
-                                }
-                                sb.append(sb2.toString());
-                            }
-                        }
-                        command.replaceArgument(argument, new Literal(sb.toString()));
-                    }
+                if (argument.isRenderableTextAvailableWithoutCommmandExecution()) {
+                    command.replaceArgument(argument, new Literal(argument.getRenderableText()));
+                } else if (argument.isCompositeArgument()) {
+                    command.replaceArgument(argument, new Literal(getString(context, (CompositeArgument) argument)));
                 } else if (argument.isCommandSubstitution()) {
-                    final CommandSubstitution cs = (CommandSubstitution) argument;
-                    expandArguments(context, cs.getPipeline());
-                    command.replaceArgument(argument, getExpandedCommand(cs.getPipeline()));
+                    command.replaceArgument(argument, new Literal(getString(context, (CommandSubstitution) argument)));
                 } else if (argument.isVariableSubstitution()) {
-                    final VariableSubstitution vs = (VariableSubstitution) argument;
-                    command.replaceArgument(argument, getExpandedVariable(context, vs));
+                    command.replaceArgument(argument, new Literal(getString(context, (VariableSubstitution) argument)));
                 } else if (argument.isQuotedString()) {
-                    final QuotedString quotedString = (QuotedString) argument;
-                    int offset = 0;
-                    final StringBuilder sb = new StringBuilder(quotedString.getText());
-                    for (QuotedString.Component component : quotedString.getComponentsUnmodifiable()) {
-                        final String expandedComponentText;
-                        if (component.argument.isVariableSubstitution()) {
-                            final VariableSubstitution vs = (VariableSubstitution) component.argument;
-                            final Literal expandedVariable = getExpandedVariable(context, vs);
-                            expandedComponentText = expandedVariable.text;
-                        } else if (component.argument.isCommandSubstitution()) {
-                            final CommandSubstitution cs = (CommandSubstitution) component.argument;
-                            expandArguments(context, cs.getPipeline());
-                            final Literal expandedCommand = getExpandedCommand(cs.getPipeline());
-                            expandedComponentText = expandedCommand.text;
-                        } else {
-                            throw new IllegalStateException("Illegal component type, expected VariableSubstitution or CommandSubstitution: " + component.argument);
-                        }
-
-                        sb.insert(component.position + offset, expandedComponentText);
-                        offset += expandedComponentText.length();
-                    }
-
-                    command.replaceArgument(argument, new Literal(sb.toString()));
+                    command.replaceArgument(argument, new Literal(getString(context, (QuotedString) argument)));
                 }
             }
         }
+    }
+
+    private String getString(Literal literal) {
+        return literal.text;
+    }
+
+    private String getString(ExecutionContext context, QuotedString quotedString) {
+        final StringBuilder sb = new StringBuilder(quotedString.getText());
+
+        int offset = 0;
+        for (QuotedString.Component component : quotedString.getComponentsUnmodifiable()) {
+            final String expandedComponentText;
+            if (component.argument.isVariableSubstitution()) {
+                final VariableSubstitution vs = (VariableSubstitution) component.argument;
+                final Literal expandedVariable = getExpandedVariable(context, vs);
+                expandedComponentText = expandedVariable.text;
+            } else if (component.argument.isCommandSubstitution()) {
+                final CommandSubstitution cs = (CommandSubstitution) component.argument;
+                expandArguments(context, cs.getPipeline());
+                final Literal expandedCommand = getExpandedCommand(cs.getPipeline());
+                expandedComponentText = expandedCommand.text;
+            } else {
+                throw new IllegalStateException("Illegal component type, expected VariableSubstitution or CommandSubstitution: " + component.argument);
+            }
+
+            sb.insert(component.position + offset, expandedComponentText);
+            offset += expandedComponentText.length();
+        }
+
+        return sb.toString();
+    }
+
+    private String getString(ExecutionContext context, VariableSubstitution vs) {
+        return getExpandedVariable(context, vs).text;
+    }
+
+    private String getString(ExecutionContext context, CommandSubstitution cs) {
+        expandArguments(context, cs.getPipeline());
+        return getExpandedCommand(cs.getPipeline()).text; // Does this method really to return a Literal?
+    }
+
+    private String getString(ExecutionContext context, CompositeArgument compositeArgument) {
+        final StringBuilder sb = new StringBuilder();
+        for (Argument arg : compositeArgument) {
+            if (arg.isLiteral()) {
+                sb.append(getString((Literal) arg));
+            } else if (arg.isCommandSubstitution()) {
+                sb.append(getString(context, (CommandSubstitution) arg));
+            } else if (arg.isVariableSubstitution()) {
+                sb.append(getString(context, (VariableSubstitution) arg));
+            } else if (arg.isQuotedString()) {
+                sb.append(getString(context, (QuotedString) arg));
+            } else if (arg.isCompositeArgument()) {
+                throw new IllegalStateException("Directly nested composite arguments should not be possible, this is a bug.");
+            }
+        }
+        return sb.toString();
     }
 
     private Literal getExpandedVariable(ExecutionContext context, VariableSubstitution vs) {
