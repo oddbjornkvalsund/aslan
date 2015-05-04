@@ -47,17 +47,21 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     private void expandArguments(ExecutionContext context, Pipeline pipeline) {
         for (Command command : pipeline.getCommandsUnmodifiable()) {
             for (Argument argument : command.getArgumentsUnmodifiable()) {
+                final String expandedArgument;
                 if (argument.isRenderableTextAvailableWithoutCommmandExecution()) {
-                    command.replaceArgument(argument, new Literal(argument.getRenderableText()));
+                    expandedArgument = argument.getRenderableText();
                 } else if (argument.isCompositeArgument()) {
-                    command.replaceArgument(argument, new Literal(getString(context, (CompositeArgument) argument)));
+                    expandedArgument = getString(context, (CompositeArgument) argument);
                 } else if (argument.isCommandSubstitution()) {
-                    command.replaceArgument(argument, new Literal(getString(context, (CommandSubstitution) argument)));
+                    expandedArgument = getString(context, (CommandSubstitution) argument);
                 } else if (argument.isVariableSubstitution()) {
-                    command.replaceArgument(argument, new Literal(getString(context, (VariableSubstitution) argument)));
+                    expandedArgument = getString(context, (VariableSubstitution) argument);
                 } else if (argument.isQuotedString()) {
-                    command.replaceArgument(argument, new Literal(getString(context, (QuotedString) argument)));
+                    expandedArgument = getString(context, (QuotedString) argument);
+                } else {
+                    throw new IllegalArgumentException("Unknown argument type: " + argument);
                 }
+                command.replaceArgument(argument, new Literal(expandedArgument));
             }
         }
     }
