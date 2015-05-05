@@ -3,6 +3,9 @@ package no.nixx.aslan.pipeline;
 import no.nixx.aslan.antlr.AslanPipelineParser;
 import no.nixx.aslan.antlr.AslanPipelineParserBaseListener;
 import no.nixx.aslan.pipeline.model.*;
+import org.antlr.v4.runtime.CommonToken;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.NotNull;
 
 import java.util.HashSet;
@@ -37,7 +40,11 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         for (Command command : pipeline.getCommandsUnmodifiable()) {
             for (Argument argument : command.getArgumentsUnmodifiable()) {
                 if (argument.isRenderableTextAvailableWithoutCommmandExecution()) {
-                    command.replaceArgument(argument, new Literal(argument.getRenderableText()));
+                    final Literal literal = new Literal(argument.getRenderableText());
+                    literal.startIndex = argument.startIndex;
+                    literal.stopIndex = argument.stopIndex;
+                    literal.unprocessedArgument = argument.unprocessedArgument;
+                    command.replaceArgument(argument, literal);
                 } else if (argument.isCompositeArgument()) {
                     final CompositeArgument compositeArgument = (CompositeArgument) argument;
                     for (Argument ca : compositeArgument) {
@@ -91,7 +98,9 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
     @Override
     public void enterSpace(@NotNull AslanPipelineParser.SpaceContext ctx) {
         if (inCompositeArgument()) {
-            getCurrentCommand().addArgument(compositeArgumentStack.pop());
+            final CompositeArgument argument = compositeArgumentStack.pop();
+            setTokenProperties(ctx, argument);
+            getCurrentCommand().addArgument(argument);
             compositeArgumentStack.push(new CompositeArgument());
         }
     }
@@ -99,6 +108,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
     @Override
     public void exitCs(@NotNull AslanPipelineParser.CsContext ctx) {
         final CommandSubstitution cs = new CommandSubstitution(pipelineStack.pop());
+        setTokenProperties(ctx, cs);
         if (inQuotedString()) {
             quotedString.addComponent(cs);
         } else {
@@ -109,6 +119,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
     @Override
     public void exitVs(@NotNull AslanPipelineParser.VsContext ctx) {
         final VariableSubstitution vs = new VariableSubstitution(ctx.VS_VARIABLE().getText());
+        setTokenProperties(ctx, vs);
         if (inQuotedString()) {
             quotedString.addComponent(vs);
         } else {
@@ -118,22 +129,27 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
 
     @Override
     public void exitLiteral(@NotNull AslanPipelineParser.LiteralContext ctx) {
-        getCurrentCompositeArgument().addArgument(new Literal(ctx.LT_TEXT().getText()));
+        final Literal argument = new Literal(ctx.LT_TEXT().getText());
+        setTokenProperties(ctx, argument);
+        getCurrentCompositeArgument().addArgument(argument);
     }
 
     @Override
     public void exitArg(@NotNull AslanPipelineParser.ArgContext ctx) {
         // This awkward test is here just because there is a lexer token "ARG" and a parser token "arg"
         if (ctx.ARG() != null) {
-            getCurrentCompositeArgument().addArgument(new Literal(ctx.ARG().getText()));
+            final Literal argument = new Literal(ctx.ARG().getText());
+            setTokenProperties(ctx, argument);
+            getCurrentCompositeArgument().addArgument(argument);
         }
     }
 
     @Override
     public void exitCmd(@NotNull AslanPipelineParser.CmdContext ctx) {
-        final CompositeArgument compositeArgument = compositeArgumentStack.pop();
-        if (!compositeArgument.isEmpty()) {
-            getCurrentCommand().addArgument(compositeArgument);
+        final CompositeArgument argument = compositeArgumentStack.pop();
+        if (!argument.isEmpty()) {
+            setTokenProperties(ctx, argument);
+            getCurrentCommand().addArgument(argument);
         }
         getCurrentPipeline().addCommand(commandStack.pop());
     }
@@ -148,6 +164,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
 
     @Override
     public void exitString(@NotNull AslanPipelineParser.StringContext ctx) {
+        setTokenProperties(ctx, quotedString);
         getCurrentCompositeArgument().addArgument(quotedString);
         quotedString = null;
         commandsCurrentlyInQuotedString.remove(getCurrentCommand());
@@ -156,6 +173,22 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
     @Override
     public void exitText(@NotNull AslanPipelineParser.TextContext ctx) {
         quotedString.appendText(ctx.getText());
+    }
+
+    private void setTokenProperties(ParserRuleContext ctx, Argument argument) {
+        final CommonToken start = (CommonToken) ctx.getStart();
+        final CommonToken stop = (CommonToken) ctx.getStop();
+        final String unprocessedArgument = start.getTokenSource().getInputStream().getText(new Interval(start.getStartIndex(), stop.getStopIndex()));
+        argument.startIndex = start.getStartIndex();
+        argument.stopIndex = stop.getStopIndex();
+        argument.unprocessedArgument = unprocessedArgument;
+    }
+
+    private void setTokenProperties(ParserRuleContext ctx, CompositeArgument argument) {
+        final CommonToken start = (CommonToken) ctx.getStart();
+        argument.startIndex = argument.get(0).startIndex;
+        argument.stopIndex = argument.get(argument.size() - 1).stopIndex;
+        argument.unprocessedArgument = start.getTokenSource().getInputStream().getText(new Interval(argument.startIndex, argument.stopIndex));
     }
 
     private boolean inCompositeArgument() {
