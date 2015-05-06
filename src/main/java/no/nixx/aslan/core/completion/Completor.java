@@ -84,9 +84,9 @@ public class Completor {
 
     private CompletionResult createCompletionResult(String command, int tabPosition, String argumentToComplete, List<String> completions, boolean doAppendQuoteAndSpaceIfOnlyOneCompletion) {
         final boolean onlyOneCompletion = (completions.size() == 1);
-        final String commmandUpToTab = command.substring(0, tabPosition);
-        final boolean inSingleQuotes = inSingleQuotes(commmandUpToTab);
-        final boolean inDoubleQuotes = inDoubleQuotes(commmandUpToTab);
+        final String commandUpToTab = command.substring(0, tabPosition);
+        final boolean inSingleQuotes = inSingleQuotes(commandUpToTab);
+        final boolean inDoubleQuotes = inDoubleQuotes(commandUpToTab);
         final String completion;
         if (inSingleQuotes || inDoubleQuotes) {
             final String quote = (inSingleQuotes) ? "\'" : "\"";
@@ -114,7 +114,7 @@ public class Completor {
             }
         }
 
-        final int idx = commmandUpToTab.lastIndexOf(argumentToComplete);
+        final int idx = commandUpToTab.lastIndexOf(argumentToComplete);
         final String commandUpToCompletion = command.substring(0, idx);
         final String commandAfterCompletion = command.substring(idx + argumentToComplete.length());
         final String completedCommand = commandUpToCompletion + completion + commandAfterCompletion;

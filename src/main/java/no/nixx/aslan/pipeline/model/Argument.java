@@ -2,6 +2,12 @@ package no.nixx.aslan.pipeline.model;
 
 public abstract class Argument {
 
+    public int startIndex = -1;
+
+    public int stopIndex = -1;
+
+    public String unprocessedArgument = null;
+
     public abstract boolean isRenderableTextAvailableWithoutCommmandExecution();
 
     public abstract String getRenderableText();
