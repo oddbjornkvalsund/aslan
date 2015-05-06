@@ -6,7 +6,8 @@ public class CommandSubstitution extends Argument {
 
     private final Pipeline pipeline;
 
-    public CommandSubstitution(Pipeline pipeline) {
+    public CommandSubstitution(Pipeline pipeline, int startIndex, int stopIndex, String unprocessedArgument) {
+        super(startIndex, stopIndex, unprocessedArgument);
         this.pipeline = checkNotNull(pipeline);
     }
 
@@ -15,12 +16,12 @@ public class CommandSubstitution extends Argument {
     }
 
     @Override
-    public boolean isRenderableTextAvailableWithoutCommmandExecution() {
+    public boolean isRenderable() {
         return false;
     }
 
     @Override
-    public String getRenderableText() {
+    public String getRenderedText() {
         throw new IllegalStateException("Renderable text is not available without commmand execution: " + this);
     }
 

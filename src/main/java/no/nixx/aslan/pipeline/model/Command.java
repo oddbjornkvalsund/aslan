@@ -8,6 +8,7 @@ import static no.nixx.aslan.core.utils.ListUtils.allButFirstOf;
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
 
 public class Command {
+
     private final List<Argument> arguments = new ArrayList<>();
 
     public void addArgument(Argument argument) {
@@ -24,10 +25,10 @@ public class Command {
 
     public String getExecutableName() {
         final Argument firstArgument = firstOf(this.arguments);
-        if (firstArgument.isLiteral()) {
-            return ((Literal) firstArgument).text;
+        if (firstArgument.isRenderable()) {
+            return firstArgument.getRenderedText();
         } else {
-            throw new IllegalArgumentException("Executable name not a literal: " + firstArgument);
+            throw new IllegalStateException("Executable name not renderable without command execution: " + firstArgument);
         }
     }
 
@@ -35,10 +36,10 @@ public class Command {
         // TODO: Perhaps a bad idea!
         final List<String> argumentsAsStrings = new ArrayList<>();
         for (Argument argument : allButFirstOf(this.arguments)) {
-            if (argument.isRenderableTextAvailableWithoutCommmandExecution()) {
-                argumentsAsStrings.add(argument.getRenderableText());
+            if (argument.isRenderable()) {
+                argumentsAsStrings.add(argument.getRenderedText());
             } else {
-                throw new IllegalArgumentException("Argument not renderable without command execution: " + argument);
+                throw new IllegalStateException("Argument not renderable without command execution: " + argument);
             }
         }
         return argumentsAsStrings;
