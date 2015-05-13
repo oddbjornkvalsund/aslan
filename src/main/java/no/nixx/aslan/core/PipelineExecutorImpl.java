@@ -53,27 +53,35 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     @Override
     public void execute(Pipeline pipeline) {
         final ExecutionContext executionContextForExpansion = executionContextFactory.createExecutionContext(defaultInputStream, defaultOutputStream, defaultErrorStream);
-        // TODO: Almost all methods in this class mutates its arguments - refactor Pipeline/Command/Argument to be immutable and change this class accordingly
-        expandArguments(executionContextForExpansion, pipeline);
-        executePipeline(pipeline, defaultInputStream, defaultOutputStream);
+        final Pipeline pipelineWithExpandedArguments = expandArguments(executionContextForExpansion, pipeline);
+        executePipeline(pipelineWithExpandedArguments, defaultInputStream, defaultOutputStream);
     }
 
-    private void expandArguments(ExecutionContext context, Pipeline pipeline) {
+    private Pipeline expandArguments(ExecutionContext context, Pipeline pipeline) {
+        final ArrayList<Command> expandedCommands = new ArrayList<>();
         for (Command command : pipeline.getCommandsUnmodifiable()) {
-            for (Argument argument : command.getArgumentsUnmodifiable()) {
+            final ArrayList<Argument> expandedArguments = new ArrayList<>();
+            for (Argument argument : command.getArguments()) {
+                final ExpandedArgument expandedArgument;
                 if (argument.isRenderable()) {
-                    command.replaceArgument(argument, new ExpandedArgument(argument.getRenderedText()));
+                    expandedArgument = new ExpandedArgument(argument.getRenderedText());
                 } else if (argument.isCompositeArgument()) {
-                    command.replaceArgument(argument, new ExpandedArgument(getString(context, (CompositeArgument) argument)));
+                    expandedArgument = new ExpandedArgument(getString(context, (CompositeArgument) argument));
                 } else if (argument.isCommandSubstitution()) {
-                    command.replaceArgument(argument, new ExpandedArgument(getString(context, (CommandSubstitution) argument)));
+                    expandedArgument = new ExpandedArgument(getString(context, (CommandSubstitution) argument));
                 } else if (argument.isVariableSubstitution()) {
-                    command.replaceArgument(argument, new ExpandedArgument(getString(context, (VariableSubstitution) argument)));
+                    expandedArgument = new ExpandedArgument(getString(context, (VariableSubstitution) argument));
                 } else if (argument.isQuotedString()) {
-                    command.replaceArgument(argument, new ExpandedArgument(getString(context, (QuotedString) argument)));
+                    expandedArgument = new ExpandedArgument(getString(context, (QuotedString) argument));
+                } else {
+                    throw new IllegalStateException("What's this?");
                 }
+                expandedArguments.add(expandedArgument);
             }
+            expandedCommands.add(new Command(command, expandedArguments));
         }
+
+        return new Pipeline(expandedCommands);
     }
 
     private String getString(Literal literal) {
@@ -91,8 +99,8 @@ public class PipelineExecutorImpl implements PipelineExecutor {
                 expandedComponentText = getExpandedVariable(context, vs);
             } else if (component.argument.isCommandSubstitution()) {
                 final CommandSubstitution cs = (CommandSubstitution) component.argument;
-                expandArguments(context, cs.getPipeline());
-                expandedComponentText = getExpandedCommand(cs.getPipeline());
+                final Pipeline expandedPipeline = expandArguments(context, cs.getPipeline());
+                expandedComponentText = getExpandedCommand(expandedPipeline);
             } else {
                 throw new IllegalStateException("Illegal component type, expected VariableSubstitution or CommandSubstitution: " + component.argument);
             }
@@ -109,8 +117,8 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     }
 
     private String getString(ExecutionContext context, CommandSubstitution cs) {
-        expandArguments(context, cs.getPipeline());
-        return getExpandedCommand(cs.getPipeline());
+        final Pipeline expandedPipeline = expandArguments(context, cs.getPipeline());
+        return getExpandedCommand(expandedPipeline);
     }
 
     private String getString(ExecutionContext context, CompositeArgument compositeArgument) {

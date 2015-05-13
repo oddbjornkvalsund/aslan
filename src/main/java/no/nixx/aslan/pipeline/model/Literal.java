@@ -27,17 +27,9 @@ public class Literal extends Argument {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof Literal) {
-            final Literal that = (Literal) obj;
-            return this.text.equals(that.text);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return text.hashCode();
+    public String toString() {
+        return "Literal{" +
+                "text='" + text + '\'' +
+                '}';
     }
 }

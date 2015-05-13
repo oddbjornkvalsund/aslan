@@ -56,21 +56,6 @@ public class QuotedString extends Argument {
                 '}';
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof QuotedString) {
-            final QuotedString that = (QuotedString) obj;
-            return this.text.equals(that.text) && this.components.equals(that.components);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return text.hashCode() + components.hashCode();
-    }
-
     public static class Component {
 
         public final int position;
@@ -81,19 +66,5 @@ public class QuotedString extends Argument {
             this.argument = checkNotNull(argument);
         }
 
-        @Override
-        public boolean equals(Object obj) {
-            if (obj instanceof Component) {
-                final Component that = (Component) obj;
-                return this.position == that.position && this.argument.equals(that.argument);
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public int hashCode() {
-            return this.position + this.argument.hashCode();
-        }
     }
 }

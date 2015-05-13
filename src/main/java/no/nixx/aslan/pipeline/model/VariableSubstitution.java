@@ -17,7 +17,7 @@ public class VariableSubstitution extends Argument {
 
     @Override
     public String getRenderedText() {
-        throw new IllegalStateException("Renderable text is not available without commmand execution: " + this);
+        throw new UnsupportedOperationException("Renderable text is not available without commmand execution: " + this);
     }
 
     @Override
@@ -26,17 +26,9 @@ public class VariableSubstitution extends Argument {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof VariableSubstitution) {
-            final VariableSubstitution that = (VariableSubstitution) obj;
-            return this.variableName.equals(that.variableName);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return variableName.hashCode();
+    public String toString() {
+        return "VariableSubstitution{" +
+                "variableName='" + variableName + '\'' +
+                '}';
     }
 }

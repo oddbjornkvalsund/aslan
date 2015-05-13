@@ -3,24 +3,29 @@ package no.nixx.aslan.pipeline.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
+import static no.nixx.aslan.core.utils.ListUtils.addElement;
 import static no.nixx.aslan.core.utils.ListUtils.allButFirstOf;
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
 
 public class Command {
 
-    private final List<Argument> arguments = new ArrayList<>();
+    public final int identity;
+    private final List<Argument> arguments;
 
-    public void addArgument(Argument argument) {
-        this.arguments.add(argument);
+    public Command() {
+        identity = System.identityHashCode(this);
+        arguments = emptyList();
     }
 
-    public void replaceArgument(Argument oldArgument, Argument newArgument) {
-        if (this.arguments.contains(oldArgument)) {
-            this.arguments.set(this.arguments.indexOf(oldArgument), newArgument);
-        } else {
-            throw new IllegalArgumentException("No such element: " + oldArgument);
-        }
+    public Command(Command parent, List<Argument> arguments) {
+        this.identity = parent.identity;
+        this.arguments = unmodifiableList(arguments);
+    }
+
+    public Command addArgument(Argument argumentToAdd) {
+        return new Command(this, addElement(arguments, argumentToAdd));
     }
 
     public String getExecutableName() {
@@ -45,22 +50,14 @@ public class Command {
         return argumentsAsStrings;
     }
 
-    public List<Argument> getArgumentsUnmodifiable() {
-        return unmodifiableList(arguments);
+    public List<Argument> getArguments() {
+        return arguments;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof Command) {
-            final Command that = (Command) obj;
-            return this.arguments.equals(that.arguments);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return arguments.hashCode();
+    public String toString() {
+        return "Command{" +
+                "arguments=" + arguments +
+                '}';
     }
 }

@@ -22,7 +22,7 @@ public class CommandSubstitution extends Argument {
 
     @Override
     public String getRenderedText() {
-        throw new IllegalStateException("Renderable text is not available without commmand execution: " + this);
+        throw new UnsupportedOperationException("Renderable text is not available without commmand execution: " + this);
     }
 
     @Override
@@ -31,17 +31,9 @@ public class CommandSubstitution extends Argument {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof CommandSubstitution) {
-            final CommandSubstitution that = (CommandSubstitution) obj;
-            return this.pipeline.equals(that.pipeline);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return pipeline.hashCode();
+    public String toString() {
+        return "CommandSubstitution{" +
+                "pipeline=" + pipeline +
+                '}';
     }
 }

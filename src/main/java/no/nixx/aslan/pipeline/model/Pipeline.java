@@ -5,8 +5,16 @@ import java.util.List;
 
 import static java.util.Collections.unmodifiableList;
 
-public class Pipeline {
+public class Pipeline { // TODO: Make immutable
+
     private final List<Command> commands = new ArrayList<>();
+
+    public Pipeline() {
+    }
+
+    public Pipeline(List<Command> commands) {
+        this.commands.addAll(commands);
+    }
 
     public void addCommand(Command command) {
         this.commands.add(command);
@@ -17,17 +25,9 @@ public class Pipeline {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof Pipeline) {
-            final Pipeline that = (Pipeline) obj;
-            return this.commands.equals(that.commands);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return commands.hashCode();
+    public String toString() {
+        return "Pipeline{" +
+                "commands=" + commands +
+                '}';
     }
 }

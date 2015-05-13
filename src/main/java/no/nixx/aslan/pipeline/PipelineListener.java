@@ -69,7 +69,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         public void addComponent(Argument argument) {
             checkNotNull(argument);
             if (argument.isCommandSubstitution() || argument.isVariableSubstitution()) {
-                this.components.add(new QuotedString.Component(this.sb.length(), argument));
+                components.add(new QuotedString.Component(sb.length(), argument));
             } else {
                 throw new IllegalArgumentException("Invalid argument type: " + argument);
             }
@@ -96,46 +96,65 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
     public Pipeline getPipeline() {
         if (pipelineStack.size() == 1) {
             final Pipeline pipeline = pipelineStack.pop();
-            removeUnnecessaryCompositeArguments(pipeline);
-            return pipeline;
+            return trimCompositeArguments(pipeline);
         } else {
             throw new IllegalStateException("Not balanced!");
         }
     }
 
+    // TODO: This is a monster. Extract this method to a separate class
+    // TODO: Place start/stop/unprocessedArgument in a container class "ArgumentProperties"
     // By default all components are added to the command as composite arguments. This method reduces the components to
     // simpler argument types, if possible.
-    private void removeUnnecessaryCompositeArguments(Pipeline pipeline) {
+    private Pipeline trimCompositeArguments(Pipeline pipeline) {
+        final List<Command> trimmedCommands = new ArrayList<>();
         for (Command command : pipeline.getCommandsUnmodifiable()) {
-            for (Argument argument : command.getArgumentsUnmodifiable()) {
+            final List<Argument> trimmedArguments = new ArrayList<>();
+            for (Argument argument : command.getArguments()) {
                 if (argument.isRenderable()) {
                     final Literal literal = new Literal(argument.getRenderedText(), argument.getStartIndex(), argument.getStopIndex(), argument.getUnprocessedArgument());
-                    command.replaceArgument(argument, literal);
+                    trimmedArguments.add(literal);
                 } else if (argument.isCompositeArgument()) {
+                    final List<Argument> trimmedCompositeArguments = new ArrayList<>();
                     final CompositeArgument compositeArgument = (CompositeArgument) argument;
                     for (Argument ca : compositeArgument) {
                         if (ca.isQuotedString()) {
+                            final List<QuotedString.Component> trimmedComponents = new ArrayList<>();
                             final QuotedString quotedString = (QuotedString) ca;
                             for (QuotedString.Component component : quotedString.getComponents()) {
                                 if (component.argument.isCommandSubstitution()) {
                                     final CommandSubstitution cs = (CommandSubstitution) component.argument;
-                                    removeUnnecessaryCompositeArguments(cs.getPipeline());
+                                    final Pipeline trimmedPipeline = trimCompositeArguments(cs.getPipeline());
+                                    trimmedComponents.add(new QuotedString.Component(component.position, new CommandSubstitution(trimmedPipeline, cs.getStartIndex(), cs.getStopIndex(), cs.getUnprocessedArgument())));
                                 } else if (component.argument.isCompositeArgument()) {
                                     throw new IllegalStateException("Directly nested composite components should not be possible, this is a bug.");
+                                } else {
+                                    trimmedComponents.add(component);
                                 }
                             }
+                            trimmedCompositeArguments.add(new QuotedString(quotedString.getText(), trimmedComponents, quotedString.getStartIndex(), quotedString.getStopIndex(), quotedString.getUnprocessedArgument()));
                         } else if (ca.isCommandSubstitution()) {
                             final CommandSubstitution cs = (CommandSubstitution) ca;
-                            removeUnnecessaryCompositeArguments(cs.getPipeline());
+                            final Pipeline trimmedPipeline = trimCompositeArguments(cs.getPipeline());
+                            final CommandSubstitution trimmedCs = new CommandSubstitution(trimmedPipeline, cs.getStartIndex(), cs.getStopIndex(), cs.getUnprocessedArgument());
+                            trimmedCompositeArguments.add(trimmedCs);
+                        } else {
+                            trimmedCompositeArguments.add(ca);
                         }
                     }
-
-                    if (compositeArgument.size() == 1) {
-                        command.replaceArgument(argument, compositeArgument.get(0));
+                    if (trimmedCompositeArguments.size() == 1) {
+                        trimmedArguments.add(trimmedCompositeArguments.get(0));
+                    } else {
+                        trimmedArguments.add(new CompositeArgument(trimmedCompositeArguments, compositeArgument.getStartIndex(), compositeArgument.getStopIndex(), compositeArgument.getUnprocessedArgument()));
                     }
+                } else {
+                    trimmedArguments.add(argument);
                 }
             }
+            trimmedCommands.add(new Command(command, trimmedArguments));
         }
+
+        return new Pipeline(trimmedCommands);
     }
 
     private Pipeline getCurrentPipeline() {
@@ -165,7 +184,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
     public void enterSpace(@NotNull AslanPipelineParser.SpaceContext ctx) {
         if (inCompositeArgument()) {
             final CompositeArgumentCollector compositeArgumentCollector = compositeArgumentStack.pop();
-            getCurrentCommand().addArgument(compositeArgumentCollector.getCompositeArgument(ctx));
+            addArgumentToCurrentCommand(compositeArgumentCollector.getCompositeArgument(ctx));
             compositeArgumentStack.push(new CompositeArgumentCollector());
         }
     }
@@ -213,7 +232,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
     public void exitCmd(@NotNull AslanPipelineParser.CmdContext ctx) {
         final CompositeArgumentCollector compositeArgumentCollector = compositeArgumentStack.pop();
         if (!compositeArgumentCollector.isEmpty()) {
-            getCurrentCommand().addArgument(compositeArgumentCollector.getCompositeArgument(ctx));
+            addArgumentToCurrentCommand(compositeArgumentCollector.getCompositeArgument(ctx));
         }
         getCurrentPipeline().addCommand(commandStack.pop());
     }
@@ -229,7 +248,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
     @Override
     public void exitString(@NotNull AslanPipelineParser.StringContext ctx) {
         getCurrentCompositeArgument().addArgument(quotedStringCollector.getQuotedString(ctx));
-        this.quotedStringCollector = null;
+        quotedStringCollector = null;
         commandsCurrentlyInQuotedString.remove(getCurrentCommand());
     }
 
@@ -250,9 +269,14 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         return !getCurrentCompositeArgument().isEmpty();
     }
 
+    private void addArgumentToCurrentCommand(Argument argument) {
+        commandStack.push(commandStack.pop().addArgument(argument));
+    }
+
     private boolean inQuotedString() {
         // Must compare with ==, not contains()
         // Contains() calls equals() that might return true for two commands that are equal but not the same instance
-        return commandsCurrentlyInQuotedString.stream().anyMatch((Command c) -> c == getCurrentCommand());
+//        return commandsCurrentlyInQuotedString.stream().anyMatch((Command c) -> c == getCurrentCommand());
+        return commandsCurrentlyInQuotedString.stream().anyMatch((Command c) -> c.identity == getCurrentCommand().identity);
     }
 }
