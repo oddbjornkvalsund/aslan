@@ -52,7 +52,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         final List<Command> trimmedCommands = new ArrayList<>();
         for (Command command : pipeline.getCommandsUnmodifiable()) {
             final List<Argument> trimmedArguments = new ArrayList<>();
-            for (Argument argument : command.getArgumentsUnmodifiable()) {
+            for (Argument argument : command.getArguments()) {
                 if (argument.isRenderable()) {
                     final Literal literal = new Literal(argument.getRenderedText(), argument.getStartIndex(), argument.getStopIndex(), argument.getUnprocessedArgument());
                     trimmedArguments.add(literal);
@@ -219,7 +219,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         // Must compare with ==, not contains()
         // Contains() calls equals() that might return true for two commands that are equal but not the same instance
 //        return commandsCurrentlyInQuotedString.stream().anyMatch((Command c) -> c == getCurrentCommand());
-        return commandsCurrentlyInQuotedString.stream().anyMatch((Command c) -> c.identity == getCurrentCommand().identity);
+        return commandsCurrentlyInQuotedString.stream().anyMatch((Command c) -> c.getIdentity() == getCurrentCommand().getIdentity());
     }
 
     private class CompositeArgumentCollector {

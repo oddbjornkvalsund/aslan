@@ -102,7 +102,7 @@ public class Completor {
             }
         }
 
-        final Argument argumentToReplace = lastOf(commandToComplete.getArgumentsUnmodifiable());
+        final Argument argumentToReplace = lastOf(commandToComplete.getArguments());
         final String commandUpToCompletion = command.substring(0, argumentToReplace.getStartIndex());
         final String commandAfterCompletion = (command.length() < argumentToReplace.getStopIndex()) ? "" : command.substring(argumentToReplace.getStopIndex());
         final String completedCommand = commandUpToCompletion + completion + commandAfterCompletion;

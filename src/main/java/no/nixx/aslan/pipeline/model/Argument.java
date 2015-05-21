@@ -6,9 +6,7 @@ import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 public abstract class Argument {
 
     private final int startIndex;
-
     private final int stopIndex;
-
     private final String unprocessedArgument;
 
     // This constructor should only be used by special subclasses such as ExpandedArgument in PipelineExecutor

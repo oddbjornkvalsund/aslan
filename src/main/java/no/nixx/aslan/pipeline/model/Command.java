@@ -12,7 +12,7 @@ import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 
 public class Command {
 
-    public final int identity;
+    private final int identity;
     private final List<Argument> arguments;
 
     public Command() {
@@ -23,6 +23,23 @@ public class Command {
     public Command(Command parent, List<Argument> arguments) {
         this.identity = parent.identity;
         this.arguments = unmodifiableList(arguments);
+    }
+
+    public int getIdentity() {
+        return identity;
+    }
+
+    public List<Argument> getArguments() {
+        return arguments;
+    }
+
+    public Argument getArgumentAtPosition(int position) {
+        return arguments.stream().filter(a -> a.spansPosition(position)).findFirst().orElse(null);
+    }
+
+    // NOTE: This method does not return the executable name!
+    public List<String> getRenderedArguments() {
+        return allButFirstOf(arguments).stream().map(Argument::getRenderedText).collect(toList());
     }
 
     public Command addArgument(Argument argumentToAdd) {
@@ -38,14 +55,6 @@ public class Command {
         }
     }
 
-    public List<String> getRenderedArguments() {
-        return allButFirstOf(arguments).stream().map(Argument::getRenderedText).collect(toList());
-    }
-
-    public List<Argument> getArgumentsUnmodifiable() {
-        return unmodifiableList(arguments);
-    }
-
     public boolean spansPosition(int position) {
         if (arguments.isEmpty()) {
             return false;
@@ -55,16 +64,6 @@ public class Command {
 
             return first.getStartIndex() <= position && last.getStopIndex() > position;
         }
-    }
-
-    public Argument getArgumentAtPosition(int position) {
-        for (Argument argument : arguments) {
-            if (argument.spansPosition(position)) {
-                return argument;
-            }
-        }
-
-        return null;
     }
 
     @Override

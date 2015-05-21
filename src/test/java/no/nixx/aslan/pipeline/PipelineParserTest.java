@@ -50,7 +50,7 @@ public class PipelineParserTest {
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
 
-        final List<Argument> arguments = echoCommand.getArgumentsUnmodifiable();
+        final List<Argument> arguments = echoCommand.getArguments();
 
         assertTrue(arguments.get(0).isLiteral());
         assertEquals("echo", ((Literal) arguments.get(0)).text);
@@ -68,10 +68,10 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
-        assertTrue(echoCommand.getArgumentsUnmodifiable().get(1) instanceof CommandSubstitution);
+        assertEquals(2, echoCommand.getArguments().size());
+        assertTrue(echoCommand.getArguments().get(1) instanceof CommandSubstitution);
 
-        final CommandSubstitution cs = (CommandSubstitution) echoCommand.getArgumentsUnmodifiable().get(1);
+        final CommandSubstitution cs = (CommandSubstitution) echoCommand.getArguments().get(1);
         final Pipeline csPipeline = cs.getPipeline();
         final Command csEchoCommand = csPipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", csEchoCommand.getExecutableName());
@@ -87,9 +87,9 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
+        assertEquals(2, echoCommand.getArguments().size());
 
-        final Argument argument = echoCommand.getArgumentsUnmodifiable().get(1);
+        final Argument argument = echoCommand.getArguments().get(1);
         assertTrue(argument instanceof QuotedString);
 
         final QuotedString quotedString = (QuotedString) argument;
@@ -112,9 +112,9 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
+        assertEquals(2, echoCommand.getArguments().size());
 
-        final Argument argument = echoCommand.getArgumentsUnmodifiable().get(1);
+        final Argument argument = echoCommand.getArguments().get(1);
         assertTrue(argument instanceof QuotedString);
 
         final QuotedString quotedString = (QuotedString) argument;
@@ -132,7 +132,7 @@ public class PipelineParserTest {
         assertEquals(1, csCommands.size());
 
         final Command csEchoCommand = csCommands.get(0);
-        assertEquals(2, csEchoCommand.getArgumentsUnmodifiable().size());
+        assertEquals(2, csEchoCommand.getArguments().size());
         assertEquals("echo", csEchoCommand.getExecutableName());
         assertEquals(asList("foo"), csEchoCommand.getRenderedArguments());
     }
@@ -145,9 +145,9 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
+        assertEquals(2, echoCommand.getArguments().size());
 
-        final Argument argument = echoCommand.getArgumentsUnmodifiable().get(1);
+        final Argument argument = echoCommand.getArguments().get(1);
         assertTrue(argument.isCompositeArgument());
         final CompositeArgument compositeArgument = (CompositeArgument) argument;
         assertEquals(compositeArgument.size(), 5);
@@ -173,7 +173,7 @@ public class PipelineParserTest {
         assertEquals(1, pipeline.getCommandsUnmodifiable().size());
 
         final Command command = pipeline.getCommandsUnmodifiable().get(0);
-        final List<Argument> arguments = command.getArgumentsUnmodifiable();
+        final List<Argument> arguments = command.getArguments();
         assertEquals(4, arguments.size());
 
         final Argument arg0 = arguments.get(0);
@@ -207,7 +207,7 @@ public class PipelineParserTest {
         final CommandSubstitution cs = (CommandSubstitution) arg3;
         final List<Command> csCommands = cs.getPipeline().getCommandsUnmodifiable();
         assertEquals(1, csCommands.size());
-        final List<Argument> csArguments = csCommands.get(0).getArgumentsUnmodifiable();
+        final List<Argument> csArguments = csCommands.get(0).getArguments();
 
         assertTrue(csArguments.get(0) instanceof Literal);
         final Literal csArg0 = (Literal) csArguments.get(0);

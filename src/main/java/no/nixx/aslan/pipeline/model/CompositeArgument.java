@@ -2,12 +2,10 @@ package no.nixx.aslan.pipeline.model;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.unmodifiableList;
 import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
-
-import static no.nixx.aslan.core.utils.ListUtils.firstOf;
-import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 
 public class CompositeArgument extends Argument implements Iterable<Argument> {
 
@@ -25,9 +23,7 @@ public class CompositeArgument extends Argument implements Iterable<Argument> {
 
     @Override
     public String getRenderedText() {
-        final StringBuilder sb = new StringBuilder();
-        arguments.stream().forEach(s -> sb.append(s.getRenderedText()));
-        return sb.toString();
+        return arguments.stream().map(Argument::getRenderedText).collect(Collectors.joining());
     }
 
     @Override
@@ -42,14 +38,6 @@ public class CompositeArgument extends Argument implements Iterable<Argument> {
 
     public Argument get(int idx) {
         return arguments.get(idx);
-    }
-
-    public Argument firstArgument() {
-        return firstOf(arguments);
-    }
-
-    public Argument lastArgument() {
-        return lastOf(arguments);
     }
 
     public int size() {
