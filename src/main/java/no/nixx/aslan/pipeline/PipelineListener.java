@@ -99,10 +99,6 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         return new Pipeline(trimmedCommands);
     }
 
-    private Pipeline getCurrentPipeline() {
-        return pipelineStack.peek();
-    }
-
     private Command getCurrentCommand() {
         return commandStack.peek();
     }
@@ -176,7 +172,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         if (!compositeArgumentCollector.isEmpty()) {
             addArgumentToCurrentCommand(compositeArgumentCollector.getCompositeArgument(ctx));
         }
-        getCurrentPipeline().addCommand(commandStack.pop());
+        addCommandToCurrentPipeline(commandStack.pop());
     }
 
     @Override
@@ -213,6 +209,10 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
 
     private void addArgumentToCurrentCommand(Argument argument) {
         commandStack.push(commandStack.pop().addArgument(argument));
+    }
+
+    private void addCommandToCurrentPipeline(Command command) {
+        pipelineStack.push(pipelineStack.pop().addCommand(command));
     }
 
     private boolean inQuotedString() {

@@ -1,23 +1,26 @@
 package no.nixx.aslan.pipeline.model;
 
-import java.util.ArrayList;
+import no.nixx.aslan.core.utils.ListUtils;
+
 import java.util.List;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 
-public class Pipeline { // TODO: Make immutable
+public class Pipeline {
 
-    private final List<Command> commands = new ArrayList<>();
+    private final List<Command> commands;
 
     public Pipeline() {
+        this.commands = emptyList();
     }
 
     public Pipeline(List<Command> commands) {
-        this.commands.addAll(commands);
+        this.commands = unmodifiableList(commands);
     }
 
-    public void addCommand(Command command) {
-        this.commands.add(command);
+    public Pipeline addCommand(Command command) {
+        return new Pipeline(ListUtils.addElement(commands, command));
     }
 
     public List<Command> getCommandsUnmodifiable() {
