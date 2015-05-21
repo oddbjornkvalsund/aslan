@@ -8,6 +8,7 @@ import no.nixx.aslan.pipeline.model.*;
 
 import java.util.*;
 
+import static java.lang.Math.min;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static no.nixx.aslan.core.utils.ListUtils.*;
@@ -16,63 +17,55 @@ import static no.nixx.aslan.core.utils.StringUtils.*;
 public class Completor {
 
     public CompletionResult getCompletions(String command, int tabPosition, ExecutableLocator executableLocator, ExecutionContext executionContext) {
+        final CompletionResult emptyCompletionResult = createEmptyCompletionResult(command, tabPosition);
         final String commandUpToTab = command.substring(0, tabPosition);
         final Pipeline pipelineToComplete = parseCommand(commandUpToTab);
         final boolean isUnableToParsePipeline = pipelineToComplete == null;
 
         if (isUnableToParsePipeline) {
-            return createEmptyCompletionResult(command, tabPosition);
+            return emptyCompletionResult;
         } else {
-            return getCompletionsForPipeline(command, tabPosition, pipelineToComplete, executableLocator, executionContext);
-        }
-    }
+            final Command commandToComplete = pipelineToComplete.getCommandAtPosition(tabPosition - 1);
+            final Executable executable = executableLocator.lookupExecutable(commandToComplete.getExecutableName());
+            final List<String> executableCandidates = executableLocator.findExecutableCandidates(commandToComplete.getExecutableName());
 
-    private CompletionResult getCompletionsForPipeline(String command, int tabPosition, Pipeline pipelineToComplete, ExecutableLocator executableLocator, ExecutionContext executionContext) {
-        final Command commandToComplete = pipelineToComplete.getCommandAtPosition(tabPosition - 1);
-        final String executableName = commandToComplete.getExecutableName();
-        final Executable executable = executableLocator.lookupExecutable(executableName);
-        final List<String> executableCandidates = executableLocator.findExecutableCandidates(executableName);
+            final boolean noExecutableCandidates = executableCandidates.isEmpty();
+            final boolean oneExecutableCandidate = executableCandidates.size() == 1;
+            final boolean executableNameNotFullyMatched = executable == null;
 
-        if (executableCandidates.isEmpty()) {
-            return createEmptyCompletionResult(command, tabPosition);
-        } else if (executableCandidates.size() == 1) {
-            if (executable == null) {
+            if (noExecutableCandidates) {
+                return emptyCompletionResult;
+            } else if (oneExecutableCandidate) {
+                if (executableNameNotFullyMatched) {
+                    return createCompletionResult(command, commandToComplete, executableCandidates, true, true);
+                } else {
+                    final List<String> arguments = commandToComplete.getRenderedArguments();
+                    if (arguments.isEmpty()) {
+                        return new CompletionResult(command + " ", tabPosition + 1, emptyList());
+                    } else {
+                        if (executable instanceof Completable) {
+                            final Completable completable = (Completable) executable;
+                            final CompletionSpecRoot completionSpecRoot = completable.getCompletionSpec(executionContext);
+
+                            final TemporaryCompletionResult partialCompletionResult = getPartiallyMatchingCompletions(completionSpecRoot, arguments);
+                            if (partialCompletionResult.completions.isEmpty()) {
+                                final TemporaryCompletionResult completeCompletionResult = getCompletelyMatchingCompletions(completionSpecRoot, arguments);
+                                if (completeCompletionResult.completions.isEmpty()) {
+                                    return emptyCompletionResult;
+                                } else {
+                                    return createCompletionResult(command, commandToComplete, completeCompletionResult.completions, completeCompletionResult.appendSpace, completeCompletionResult.appendQuote);
+                                }
+                            } else {
+                                return createCompletionResult(command, commandToComplete, partialCompletionResult.completions, partialCompletionResult.appendSpace, partialCompletionResult.appendQuote);
+                            }
+                        } else {
+                            return emptyCompletionResult;
+                        }
+                    }
+                }
+            } else {
                 return createCompletionResult(command, commandToComplete, executableCandidates, true, true);
-            } else {
-                return getCompletionsForExecutable(command, tabPosition, commandToComplete, executionContext, executable);
             }
-        } else {
-            return createCompletionResult(command, commandToComplete, executableCandidates, true, true);
-        }
-    }
-
-    private CompletionResult getCompletionsForExecutable(String command, int tabPosition, Command commandToComplete, ExecutionContext executionContext, Executable executable) {
-        if (commandToComplete.getRenderedArguments().isEmpty()) {
-            return new CompletionResult(command + " ", tabPosition + 1, emptyList());
-        } else {
-            if (executable instanceof Completable) {
-                final Completable completable = (Completable) executable;
-                return getCompletionsForCompletable(command, tabPosition, commandToComplete, completable.getCompletionSpec(executionContext));
-            } else {
-                return createEmptyCompletionResult(command, tabPosition);
-            }
-        }
-    }
-
-    private CompletionResult getCompletionsForCompletable(String command, int tabPosition, Command commandToComplete, CompletionSpecRoot completionSpecRoot) {
-        final List<String> arguments = commandToComplete.getRenderedArguments();
-        final TemporaryCompletionResult partialCompletionResult = getPartiallyMatchingCompletions(completionSpecRoot, arguments);
-        final List<String> partialCompletions = partialCompletionResult.completions;
-        if (partialCompletions.isEmpty()) {
-            final TemporaryCompletionResult completeCompletionResult = getCompletelyMatchingCompletions(completionSpecRoot, arguments);
-            final List<String> completeCompletions = completeCompletionResult.completions;
-            if (completeCompletions.isEmpty()) {
-                return createEmptyCompletionResult(command, tabPosition);
-            } else {
-                return createCompletionResult(command, commandToComplete, completeCompletions, completeCompletionResult.doAppendSpaceIfOnlyOneCompletion, completeCompletionResult.doAppendQuoteIfOnlyOneCompletion);
-            }
-        } else {
-            return createCompletionResult(command, commandToComplete, partialCompletions, partialCompletionResult.doAppendSpaceIfOnlyOneCompletion, partialCompletionResult.doAppendQuoteIfOnlyOneCompletion);
         }
     }
 
@@ -80,15 +73,15 @@ public class Completor {
         return new CompletionResult(command, tabPosition, emptyList());
     }
 
-    private CompletionResult createCompletionResult(String command, Command commandToComplete, List<String> completions, boolean doAppendSpaceIfOnlyOneCompletion, boolean doAppendQuoteIfOnlyOneCompletion) {
+    private CompletionResult createCompletionResult(String command, Command commandToComplete, List<String> completions, boolean doAppendSpace, boolean doAppendQuote) {
         final boolean onlyOneCompletion = (completions.size() == 1);
         final String completion;
         if (onlyOneCompletion) {
             final String onlyCompletion = firstOf(completions);
             if (containsWhiteSpace(onlyCompletion)) {
-                completion = String.format("\"%s%s%s", onlyCompletion, doAppendQuoteIfOnlyOneCompletion ? "\"" : "", doAppendSpaceIfOnlyOneCompletion ? " " : "");
+                completion = String.format("\"%s%s%s", onlyCompletion, doAppendQuote ? "\"" : "", doAppendSpace ? " " : "");
             } else {
-                completion = String.format("%s%s", onlyCompletion, doAppendSpaceIfOnlyOneCompletion ? " " : "");
+                completion = String.format("%s%s", onlyCompletion, doAppendSpace ? " " : "");
             }
         } else {
             if (anyContainsWhiteSpace(completions)) {
@@ -101,7 +94,7 @@ public class Completor {
 
         final Argument argumentToReplace = lastOf(commandToComplete.getArguments());
         final String commandUpToCompletion = command.substring(0, argumentToReplace.getStartIndex());
-        final String commandAfterCompletion = (command.length() < argumentToReplace.getStopIndex()) ? "" : command.substring(argumentToReplace.getStopIndex());
+        final String commandAfterCompletion = command.substring(min(command.length(), argumentToReplace.getStopIndex()));
         final String completedCommand = commandUpToCompletion + completion + commandAfterCompletion;
         final int newTabPosition = commandUpToCompletion.length() + completion.length();
         return new CompletionResult(completedCommand, newTabPosition, onlyOneCompletion ? emptyList() : completions);
@@ -253,13 +246,13 @@ public class Completor {
     }
 
     private class TemporaryCompletionResult {
-        public final boolean doAppendSpaceIfOnlyOneCompletion;
-        public final boolean doAppendQuoteIfOnlyOneCompletion;
+        public final boolean appendSpace;
+        public final boolean appendQuote;
         public final List<String> completions;
 
-        TemporaryCompletionResult(boolean doAppendSpaceIfOnlyOneCompletion, boolean doAppendQuoteIfOnlyOneCompletion, List<String> completions) {
-            this.doAppendSpaceIfOnlyOneCompletion = doAppendSpaceIfOnlyOneCompletion;
-            this.doAppendQuoteIfOnlyOneCompletion = doAppendQuoteIfOnlyOneCompletion;
+        TemporaryCompletionResult(boolean appendSpace, boolean appendQuote, List<String> completions) {
+            this.appendSpace = appendSpace;
+            this.appendQuote = appendQuote;
             this.completions = completions;
         }
     }
