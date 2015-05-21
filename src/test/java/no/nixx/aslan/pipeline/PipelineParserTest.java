@@ -155,10 +155,8 @@ public class PipelineParserTest {
         assertEquals("complex", compositeArgument.get(0).getRenderedText());
         assertTrue(compositeArgument.get(1).isLiteral());
         assertEquals("single quoted", compositeArgument.get(1).getRenderedText());
-        assertTrue(compositeArgument.get(2).isQuotedString());
-        final QuotedString quotedString = (QuotedString) compositeArgument.get(2);
-        assertEquals("double quoted", quotedString.getText());
-        assertEquals(Collections.<QuotedString.Component>emptyList(), quotedString.getComponents());
+        assertTrue(compositeArgument.get(2).isLiteral());
+        assertEquals("double quoted", compositeArgument.get(2).getRenderedText());
         assertTrue(compositeArgument.get(3).isCommandSubstitution());
         assertTrue(compositeArgument.get(4).isVariableSubstitution());
     }

@@ -12,7 +12,7 @@ import java.util.List;
  */
 public class PipelineTrimmer {
 
-    public Pipeline trim(Pipeline pipeline) {
+    public Pipeline getTrimmedPipeline(Pipeline pipeline) {
         if (pipeline == null) {
             throw new IllegalArgumentException("Pipeline cannot be null!");
         } else {
@@ -34,6 +34,10 @@ public class PipelineTrimmer {
         for (Argument arg : arguments) {
             if (arg.isRenderable()) {
                 trimmedArguments.add(getTrimmedRenderable(arg));
+            } else if (arg.isQuotedString()) {
+                final QuotedString quotedString = (QuotedString) arg;
+                final QuotedString trimmedQuotedString = getTrimmedQuotedString(quotedString);
+                trimmedArguments.add(trimmedQuotedString);
             } else if (arg.isCompositeArgument()) {
                 final CompositeArgument compositeArgument = (CompositeArgument) arg;
                 final CompositeArgument trimmedCompositeArgument = getTrimmedCompositeArgument(compositeArgument);
@@ -49,31 +53,6 @@ public class PipelineTrimmer {
         return trimmedArguments;
     }
 
-    private CompositeArgument getTrimmedCompositeArgument(CompositeArgument compositeArgument) {
-        final List<Argument> trimmedCompositeArguments = new ArrayList<>();
-
-        for (Argument arg : compositeArgument) {
-            if (arg.isQuotedString()) {
-                final QuotedString quotedString = (QuotedString) arg;
-                final QuotedString trimmedQuotedString = getTrimmedQuotedString(quotedString);
-                trimmedCompositeArguments.add(trimmedQuotedString);
-            } else if (arg.isCommandSubstitution()) {
-                final CommandSubstitution commandSubstitution = (CommandSubstitution) arg;
-                final CommandSubstitution trimmedCommandSubstitution = getTrimmedCommandSubstitution(commandSubstitution);
-                trimmedCompositeArguments.add(trimmedCommandSubstitution);
-            } else {
-                trimmedCompositeArguments.add(arg);
-            }
-        }
-
-        return new CompositeArgument(trimmedCompositeArguments, compositeArgument.getStartIndex(), compositeArgument.getStopIndex(), compositeArgument.getUnprocessedArgument());
-    }
-
-    private CommandSubstitution getTrimmedCommandSubstitution(CommandSubstitution commmandSubstitution) {
-        final Pipeline trimmedPipeline = trim(commmandSubstitution.getPipeline());
-        return new CommandSubstitution(trimmedPipeline, commmandSubstitution.getStartIndex(), commmandSubstitution.getStopIndex(), commmandSubstitution.getUnprocessedArgument());
-    }
-
     private QuotedString getTrimmedQuotedString(QuotedString quotedString) {
         final List<QuotedString.Component> trimmedComponents = new ArrayList<>();
         for (QuotedString.Component component : quotedString.getComponents()) {
@@ -82,12 +61,22 @@ public class PipelineTrimmer {
                 final CommandSubstitution trimmedCommandSubstitution = getTrimmedCommandSubstitution(commandSubstitution);
                 trimmedComponents.add(new QuotedString.Component(component.position, trimmedCommandSubstitution));
             } else if (component.argument.isCompositeArgument()) {
-                throw new IllegalStateException("Directly nested composite components should not be possible, this is a bug.");
+                final CompositeArgument compositeArgument = (CompositeArgument) component.argument;
+                final CompositeArgument trimmedCompositeArgument = getTrimmedCompositeArgument(compositeArgument);
+                trimmedComponents.add(new QuotedString.Component(component.position, trimmedCompositeArgument));
             } else {
                 trimmedComponents.add(component);
             }
         }
         return new QuotedString(quotedString.getText(), trimmedComponents, quotedString.getStartIndex(), quotedString.getStopIndex(), quotedString.getUnprocessedArgument());
+    }
+
+    private CompositeArgument getTrimmedCompositeArgument(CompositeArgument ca) {
+        return new CompositeArgument(getTrimmedArguments(ca.getArguments()), ca.getStartIndex(), ca.getStopIndex(), ca.getUnprocessedArgument());
+    }
+
+    private CommandSubstitution getTrimmedCommandSubstitution(CommandSubstitution cs) {
+        return new CommandSubstitution(getTrimmedPipeline(cs.getPipeline()), cs.getStartIndex(), cs.getStopIndex(), cs.getUnprocessedArgument());
     }
 
     private Literal getTrimmedRenderable(Argument argument) {

@@ -16,6 +16,10 @@ public class CompositeArgument extends Argument implements Iterable<Argument> {
         this.arguments = unmodifiableList(checkNotNull(arguments));
     }
 
+    public List<Argument> getArguments() {
+        return arguments;
+    }
+
     @Override
     public boolean isRenderable() {
         return arguments.stream().allMatch(Argument::isRenderable);

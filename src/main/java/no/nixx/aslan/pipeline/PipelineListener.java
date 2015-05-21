@@ -39,7 +39,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         if (pipelineStack.size() == 1) {
             final Pipeline pipeline = pipelineStack.pop();
             final PipelineTrimmer pipelineTrimmer = new PipelineTrimmer();
-            return pipelineTrimmer.trim(pipeline);
+            return pipelineTrimmer.getTrimmedPipeline(pipeline);
         } else {
             throw new IllegalStateException("Not balanced!");
         }
