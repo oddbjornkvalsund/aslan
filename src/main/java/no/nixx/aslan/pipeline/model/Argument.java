@@ -12,6 +12,10 @@ public abstract class Argument {
 
     public abstract String getRenderableText();
 
+    public boolean spansPosition(int position) {
+        return startIndex <= position && stopIndex > position;
+    }
+
     public boolean isLiteral() {
         return false;
     }

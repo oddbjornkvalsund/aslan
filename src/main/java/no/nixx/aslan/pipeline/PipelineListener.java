@@ -180,15 +180,15 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         final CommonToken stop = (CommonToken) ctx.getStop();
         final String unprocessedArgument = start.getTokenSource().getInputStream().getText(new Interval(start.getStartIndex(), stop.getStopIndex()));
         argument.startIndex = start.getStartIndex();
-        argument.stopIndex = stop.getStopIndex();
+        argument.stopIndex = stop.getStopIndex() + 1; // CommonToken has inclusive stopIndex, while Argument.stopIndex is exclusive, suitable for String.substring()
         argument.unprocessedArgument = unprocessedArgument;
     }
 
-    private void setTokenProperties(ParserRuleContext ctx, CompositeArgument argument) {
+    private void setTokenProperties(ParserRuleContext ctx, CompositeArgument compositeArgument) {
         final CommonToken start = (CommonToken) ctx.getStart();
-        argument.startIndex = argument.get(0).startIndex;
-        argument.stopIndex = argument.get(argument.size() - 1).stopIndex;
-        argument.unprocessedArgument = start.getTokenSource().getInputStream().getText(new Interval(argument.startIndex, argument.stopIndex));
+        compositeArgument.startIndex = compositeArgument.firstArgument().startIndex;
+        compositeArgument.stopIndex = compositeArgument.lastArgument().stopIndex;
+        compositeArgument.unprocessedArgument = start.getTokenSource().getInputStream().getText(new Interval(compositeArgument.startIndex, compositeArgument.stopIndex - 1));
     }
 
     private boolean inCompositeArgument() {

@@ -16,6 +16,22 @@ public class Pipeline {
         return unmodifiableList(commands);
     }
 
+    public Command getCommandAtPosition(int position) {
+        for (Command command : commands) {
+            if (command.spansPosition(position)) {
+                final Argument argument = command.getArgumentAtPosition(position);
+                if (argument != null && argument.isCommandSubstitution()) {
+                    final CommandSubstitution cs = (CommandSubstitution) argument;
+                    return cs.getPipeline().getCommandAtPosition(position);
+                } else {
+                    return command;
+                }
+            }
+        }
+
+        return null;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof Pipeline) {

@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import static no.nixx.aslan.core.utils.ListUtils.firstOf;
+import static no.nixx.aslan.core.utils.ListUtils.lastOf;
+
 public class CompositeArgument extends Argument implements Iterable<Argument> {
 
     private final List<Argument> arguments = new ArrayList<>();
@@ -40,6 +43,14 @@ public class CompositeArgument extends Argument implements Iterable<Argument> {
 
     public Argument get(int idx) {
         return arguments.get(idx);
+    }
+
+    public Argument firstArgument() {
+        return firstOf(arguments);
+    }
+
+    public Argument lastArgument() {
+        return lastOf(arguments);
     }
 
     public int size() {

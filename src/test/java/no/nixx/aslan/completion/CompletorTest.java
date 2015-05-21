@@ -157,7 +157,12 @@ public class CompletorTest {
                     }
 
                     @Override
-                    public boolean appendQuoteAndSpaceIfOnlyOneCompletion() {
+                    public boolean appendSpaceIfOnlyOneCompletion() {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean appendQuoteIfOnlyOneCompletion() {
                         return false;
                     }
                 },
@@ -181,7 +186,7 @@ public class CompletorTest {
                     }
 
                     @Override
-                    public boolean appendQuoteAndSpaceIfOnlyOneCompletion() {
+                    public boolean appendSpaceIfOnlyOneCompletion() {
                         return true;
                     }
                 }

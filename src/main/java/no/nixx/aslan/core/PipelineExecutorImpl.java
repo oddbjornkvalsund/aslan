@@ -171,10 +171,10 @@ public class PipelineExecutorImpl implements PipelineExecutor {
             }
             if (executable instanceof ShellUtil) {
                 final ShellUtilExecutionContext context = executionContextFactory.createShellUtilExecutionContext(in, out, defaultErrorStream);
-                executables.add(new ExecutableWithExecutionContextAndArgs(executable, context, command.getArgumentsAsStrings()));
+                executables.add(new ExecutableWithExecutionContextAndArgs(executable, context, command.getRenderedArguments()));
             } else {
                 final ExecutionContext context = executionContextFactory.createExecutionContext(in, out, defaultErrorStream);
-                executables.add(new ExecutableWithExecutionContextAndArgs(executable, context, command.getArgumentsAsStrings()));
+                executables.add(new ExecutableWithExecutionContextAndArgs(executable, context, command.getRenderedArguments()));
             }
         }
 

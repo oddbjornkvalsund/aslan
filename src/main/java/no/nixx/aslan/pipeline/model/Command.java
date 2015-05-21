@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.unmodifiableList;
+import static java.util.stream.Collectors.toList;
 import static no.nixx.aslan.core.utils.ListUtils.allButFirstOf;
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
+import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 
 public class Command {
     private final List<Argument> arguments = new ArrayList<>();
@@ -31,21 +33,33 @@ public class Command {
         }
     }
 
-    public List<String> getArgumentsAsStrings() {
-        // TODO: Perhaps a bad idea!
-        final List<String> argumentsAsStrings = new ArrayList<>();
-        for (Argument argument : allButFirstOf(this.arguments)) {
-            if (argument.isRenderableTextAvailableWithoutCommmandExecution()) {
-                argumentsAsStrings.add(argument.getRenderableText());
-            } else {
-                throw new IllegalArgumentException("Argument not renderable without command execution: " + argument);
-            }
-        }
-        return argumentsAsStrings;
+    public List<String> getRenderedArguments() {
+        return allButFirstOf(arguments).stream().map(Argument::getRenderableText).collect(toList());
     }
 
     public List<Argument> getArgumentsUnmodifiable() {
         return unmodifiableList(arguments);
+    }
+
+    public boolean spansPosition(int position) {
+        if (arguments.isEmpty()) {
+            return false;
+        } else {
+            final Argument first = firstOf(arguments);
+            final Argument last = lastOf(arguments);
+
+            return first.startIndex <= position && last.stopIndex > position;
+        }
+    }
+
+    public Argument getArgumentAtPosition(int position) {
+        for (Argument argument : arguments) {
+            if (argument.spansPosition(position)) {
+                return argument;
+            }
+        }
+
+        return null;
     }
 
     @Override

@@ -35,7 +35,7 @@ public class TestFilesCompletionSpec extends CompletionSpec {
     }
 
     @Override
-    public boolean appendQuoteAndSpaceIfOnlyOneCompletion() {
+    public boolean appendSpaceIfOnlyOneCompletion() {
         return true;
     }
 

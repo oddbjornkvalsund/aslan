@@ -25,7 +25,7 @@ public class PathCompletionSpec extends CompletionSpec {
     private final Type type;
     private final ExecutionContext executionContext;
 
-    private boolean doAppendQuoteAndSpace = false;
+    private boolean doAppendSpace = false;
 
     public PathCompletionSpec(ExecutionContext executionContext) {
         this(executionContext, Type.FILES_AND_DIRECTORIES);
@@ -67,7 +67,7 @@ public class PathCompletionSpec extends CompletionSpec {
     public List<String> getCompletions(String argument) {
         final List<Path> matchingPaths = getMatchingPaths(argument).collect(toList());
 
-        doAppendQuoteAndSpace = (matchingPaths.size() == 1) && Files.isRegularFile(getResolved(firstOf(matchingPaths)));
+        doAppendSpace = (matchingPaths.size() == 1) && Files.isRegularFile(getResolved(firstOf(matchingPaths)));
 
         return matchingPaths.stream().map(path -> path.toString() + (Files.isDirectory(getResolved(path)) ? FILE_SEPARATOR : "")).collect(toList());
     }
@@ -78,8 +78,13 @@ public class PathCompletionSpec extends CompletionSpec {
     }
 
     @Override
-    public boolean appendQuoteAndSpaceIfOnlyOneCompletion() {
-        return doAppendQuoteAndSpace;
+    public boolean appendSpaceIfOnlyOneCompletion() {
+        return doAppendSpace;
+    }
+
+    @Override
+    public boolean appendQuoteIfOnlyOneCompletion() {
+        return true;
     }
 
     private Stream<Path> getMatchingPaths(String argument) {
