@@ -61,7 +61,7 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         final ArrayList<Command> expandedCommands = new ArrayList<>();
         for (Command command : pipeline.getCommandsUnmodifiable()) {
             final ArrayList<Argument> expandedArguments = new ArrayList<>();
-            for (Argument argument : command.getArguments()) {
+            for (Argument argument : command.getArgumentsUnmodifiable()) {
                 final ExpandedArgument expandedArgument;
                 if (argument.isRenderable()) {
                     expandedArgument = new ExpandedArgument(argument.getRenderedText());

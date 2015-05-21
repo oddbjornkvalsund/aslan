@@ -35,64 +35,6 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
 
     private QuotedStringCollector quotedStringCollector;
 
-    private class CompositeArgumentCollector {
-
-        final List<Argument> arguments = new ArrayList<>();
-
-        public void addArgument(Argument argument) {
-            arguments.add(checkNotNull(argument));
-        }
-
-        public boolean isEmpty() {
-            return arguments.isEmpty();
-        }
-
-        public CompositeArgument getCompositeArgument(ParserRuleContext ctx) {
-            final CommonToken start = (CommonToken) ctx.getStart();
-            final int startIndex = arguments.get(0).getStartIndex();
-            final int stopIndex = arguments.get(arguments.size() - 1).getStopIndex();
-            final String unprocessedArgument = start.getTokenSource().getInputStream().getText(new Interval(startIndex, stopIndex));
-
-            return new CompositeArgument(arguments, startIndex, stopIndex, unprocessedArgument);
-        }
-    }
-
-    private class QuotedStringCollector {
-
-        final StringBuilder sb = new StringBuilder();
-        final List<QuotedString.Component> components = new ArrayList<>();
-
-        public void appendText(String text) {
-            sb.append(checkNotNull(text));
-        }
-
-        public void addComponent(Argument argument) {
-            checkNotNull(argument);
-            if (argument.isCommandSubstitution() || argument.isVariableSubstitution()) {
-                components.add(new QuotedString.Component(sb.length(), argument));
-            } else {
-                throw new IllegalArgumentException("Invalid argument type: " + argument);
-            }
-        }
-
-        public QuotedString getQuotedString(ParserRuleContext ctx) {
-            final TokenProperties properties = getTokenProperties(ctx);
-            return new QuotedString(sb.toString(), components, properties.startIndex, properties.stopIndex, properties.unprocessedArgument);
-        }
-    }
-
-    private class TokenProperties {
-        final int startIndex;
-        final int stopIndex;
-        final String unprocessedArgument;
-
-        public TokenProperties(int startIndex, int stopIndex, String unprocessedArgument) {
-            this.startIndex = startIndex;
-            this.stopIndex = stopIndex;
-            this.unprocessedArgument = unprocessedArgument;
-        }
-    }
-
     public Pipeline getPipeline() {
         if (pipelineStack.size() == 1) {
             final Pipeline pipeline = pipelineStack.pop();
@@ -110,7 +52,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         final List<Command> trimmedCommands = new ArrayList<>();
         for (Command command : pipeline.getCommandsUnmodifiable()) {
             final List<Argument> trimmedArguments = new ArrayList<>();
-            for (Argument argument : command.getArguments()) {
+            for (Argument argument : command.getArgumentsUnmodifiable()) {
                 if (argument.isRenderable()) {
                     final Literal literal = new Literal(argument.getRenderedText(), argument.getStartIndex(), argument.getStopIndex(), argument.getUnprocessedArgument());
                     trimmedArguments.add(literal);
@@ -237,8 +179,6 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         getCurrentPipeline().addCommand(commandStack.pop());
     }
 
-    // No support for nested quoted strings at this point
-
     @Override
     public void enterString(@NotNull AslanPipelineParser.StringContext ctx) {
         quotedStringCollector = new QuotedStringCollector();
@@ -257,13 +197,14 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         quotedStringCollector.appendText(ctx.getText());
     }
 
+    // No support for nested quoted strings at this point
+
     private TokenProperties getTokenProperties(ParserRuleContext ctx) {
         final CommonToken start = (CommonToken) ctx.getStart();
         final CommonToken stop = (CommonToken) ctx.getStop();
-        final String unprocessedArgument = start.getTokenSource().getInputStream().getText(new Interval(start.getStartIndex(), stop.getStopIndex()));
-    }
+        final String unprocessedArgument = ctx.getText();
 
-        return new TokenProperties(start.getStartIndex(), stop.getStopIndex(), unprocessedArgument);
+        return new TokenProperties(start.getStartIndex(), stop.getStopIndex() + 1, unprocessedArgument);
     }
 
     private boolean inCompositeArgument() {
@@ -279,5 +220,63 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         // Contains() calls equals() that might return true for two commands that are equal but not the same instance
 //        return commandsCurrentlyInQuotedString.stream().anyMatch((Command c) -> c == getCurrentCommand());
         return commandsCurrentlyInQuotedString.stream().anyMatch((Command c) -> c.identity == getCurrentCommand().identity);
+    }
+
+    private class CompositeArgumentCollector {
+
+        final List<Argument> arguments = new ArrayList<>();
+
+        public void addArgument(Argument argument) {
+            arguments.add(checkNotNull(argument));
+        }
+
+        public boolean isEmpty() {
+            return arguments.isEmpty();
+        }
+
+        public CompositeArgument getCompositeArgument(ParserRuleContext ctx) {
+            final CommonToken start = (CommonToken) ctx.getStart();
+            final int startIndex = arguments.get(0).getStartIndex();
+            final int stopIndex = arguments.get(arguments.size() - 1).getStopIndex();
+            final String unprocessedArgument = start.getTokenSource().getInputStream().getText(new Interval(startIndex, stopIndex - 1));
+
+            return new CompositeArgument(arguments, startIndex, stopIndex, unprocessedArgument);
+        }
+    }
+
+    private class QuotedStringCollector {
+
+        final StringBuilder sb = new StringBuilder();
+        final List<QuotedString.Component> components = new ArrayList<>();
+
+        public void appendText(String text) {
+            sb.append(checkNotNull(text));
+        }
+
+        public void addComponent(Argument argument) {
+            checkNotNull(argument);
+            if (argument.isCommandSubstitution() || argument.isVariableSubstitution()) {
+                components.add(new QuotedString.Component(sb.length(), argument));
+            } else {
+                throw new IllegalArgumentException("Invalid argument type: " + argument);
+            }
+        }
+
+        public QuotedString getQuotedString(ParserRuleContext ctx) {
+            final TokenProperties properties = getTokenProperties(ctx);
+            return new QuotedString(sb.toString(), components, properties.startIndex, properties.stopIndex, properties.unprocessedArgument);
+        }
+    }
+
+    private class TokenProperties {
+        final int startIndex;
+        final int stopIndex;
+        final String unprocessedArgument;
+
+        public TokenProperties(int startIndex, int stopIndex, String unprocessedArgument) {
+            this.startIndex = startIndex;
+            this.stopIndex = stopIndex;
+            this.unprocessedArgument = unprocessedArgument;
+        }
     }
 }

@@ -1,6 +1,5 @@
 package no.nixx.aslan.pipeline.model;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
@@ -40,7 +39,7 @@ public class Command {
     }
 
     public List<String> getRenderedArguments() {
-        return allButFirstOf(arguments).stream().map(Argument::getRenderableText).collect(toList());
+        return allButFirstOf(arguments).stream().map(Argument::getRenderedText).collect(toList());
     }
 
     public List<Argument> getArgumentsUnmodifiable() {
@@ -54,7 +53,7 @@ public class Command {
             final Argument first = firstOf(arguments);
             final Argument last = lastOf(arguments);
 
-            return first.startIndex <= position && last.stopIndex > position;
+            return first.getStartIndex() <= position && last.getStopIndex() > position;
         }
     }
 

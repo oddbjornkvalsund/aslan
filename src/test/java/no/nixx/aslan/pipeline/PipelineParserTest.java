@@ -50,7 +50,7 @@ public class PipelineParserTest {
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
 
-        final List<Argument> arguments = echoCommand.getArguments();
+        final List<Argument> arguments = echoCommand.getArgumentsUnmodifiable();
 
         assertTrue(arguments.get(0).isLiteral());
         assertEquals("echo", ((Literal) arguments.get(0)).text);
@@ -68,10 +68,10 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(2, echoCommand.getArguments().size());
-        assertTrue(echoCommand.getArguments().get(1) instanceof CommandSubstitution);
+        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
+        assertTrue(echoCommand.getArgumentsUnmodifiable().get(1) instanceof CommandSubstitution);
 
-        final CommandSubstitution cs = (CommandSubstitution) echoCommand.getArguments().get(1);
+        final CommandSubstitution cs = (CommandSubstitution) echoCommand.getArgumentsUnmodifiable().get(1);
         final Pipeline csPipeline = cs.getPipeline();
         final Command csEchoCommand = csPipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", csEchoCommand.getExecutableName());
@@ -87,9 +87,9 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(2, echoCommand.getArguments().size());
+        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
 
-        final Argument argument = echoCommand.getArguments().get(1);
+        final Argument argument = echoCommand.getArgumentsUnmodifiable().get(1);
         assertTrue(argument instanceof QuotedString);
 
         final QuotedString quotedString = (QuotedString) argument;
@@ -112,9 +112,9 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(2, echoCommand.getArguments().size());
+        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
 
-        final Argument argument = echoCommand.getArguments().get(1);
+        final Argument argument = echoCommand.getArgumentsUnmodifiable().get(1);
         assertTrue(argument instanceof QuotedString);
 
         final QuotedString quotedString = (QuotedString) argument;
@@ -132,7 +132,7 @@ public class PipelineParserTest {
         assertEquals(1, csCommands.size());
 
         final Command csEchoCommand = csCommands.get(0);
-        assertEquals(2, csEchoCommand.getArguments().size());
+        assertEquals(2, csEchoCommand.getArgumentsUnmodifiable().size());
         assertEquals("echo", csEchoCommand.getExecutableName());
         assertEquals(asList("foo"), csEchoCommand.getRenderedArguments());
     }
@@ -145,9 +145,9 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(2, echoCommand.getArguments().size());
+        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
 
-        final Argument argument = echoCommand.getArguments().get(1);
+        final Argument argument = echoCommand.getArgumentsUnmodifiable().get(1);
         assertTrue(argument.isCompositeArgument());
         final CompositeArgument compositeArgument = (CompositeArgument) argument;
         assertEquals(compositeArgument.size(), 5);
@@ -173,62 +173,62 @@ public class PipelineParserTest {
         assertEquals(1, pipeline.getCommandsUnmodifiable().size());
 
         final Command command = pipeline.getCommandsUnmodifiable().get(0);
-        final List<Argument> arguments = command.getArguments();
+        final List<Argument> arguments = command.getArgumentsUnmodifiable();
         assertEquals(4, arguments.size());
 
         final Argument arg0 = arguments.get(0);
         assertTrue(arg0 instanceof Literal);
-        assertEquals("echo", arg0.getRenderableText());
-        assertEquals(0, arg0.startIndex);
-        assertEquals(4, arg0.stopIndex);
-        assertEquals("echo", arg0.unprocessedArgument);
+        assertEquals("echo", arg0.getRenderedText());
+        assertEquals(0, arg0.getStartIndex());
+        assertEquals(4, arg0.getStopIndex());
+        assertEquals("echo", arg0.getUnprocessedArgument());
 
         final Argument arg1 = arguments.get(1);
         assertTrue(arg1 instanceof Literal);
-        assertEquals("first", arg1.getRenderableText());
-        assertEquals(10, arg1.startIndex);
-        assertEquals(15, arg1.stopIndex);
-        assertEquals("first", arg1.unprocessedArgument);
+        assertEquals("first", arg1.getRenderedText());
+        assertEquals(10, arg1.getStartIndex());
+        assertEquals(15, arg1.getStopIndex());
+        assertEquals("first", arg1.getUnprocessedArgument());
 
         final Argument arg2 = arguments.get(2);
         assertTrue(arg2 instanceof Literal);
-        assertEquals("complex  Argument  ", arg2.getRenderableText());
-        assertEquals(19, arg2.startIndex);
-        assertEquals(40, arg2.stopIndex);
-        assertEquals("complex'  Argument  '", arg2.unprocessedArgument);
+        assertEquals("complex  Argument  ", arg2.getRenderedText());
+        assertEquals(19, arg2.getStartIndex());
+        assertEquals(40, arg2.getStopIndex());
+        assertEquals("complex'  Argument  '", arg2.getUnprocessedArgument());
 
         final Argument arg3 = arguments.get(3);
         assertTrue(arg3 instanceof CommandSubstitution);
-        assertFalse(arg3.isRenderableTextAvailableWithoutCommmandExecution());
-        assertEquals(41, arg3.startIndex);
-        assertEquals(64, arg3.stopIndex);
-        assertEquals("$(cs and \"inner $(cs)\")", arg3.unprocessedArgument);
+        assertFalse(arg3.isRenderable());
+        assertEquals(41, arg3.getStartIndex());
+        assertEquals(64, arg3.getStopIndex());
+        assertEquals("$(cs and \"inner $(cs)\")", arg3.getUnprocessedArgument());
 
         final CommandSubstitution cs = (CommandSubstitution) arg3;
         final List<Command> csCommands = cs.getPipeline().getCommandsUnmodifiable();
         assertEquals(1, csCommands.size());
-        final List<Argument> csArguments = csCommands.get(0).getArguments();
+        final List<Argument> csArguments = csCommands.get(0).getArgumentsUnmodifiable();
 
         assertTrue(csArguments.get(0) instanceof Literal);
         final Literal csArg0 = (Literal) csArguments.get(0);
-        assertEquals("cs", csArg0.getRenderableText());
-        assertEquals(43, csArg0.startIndex);
-        assertEquals(45, csArg0.stopIndex);
-        assertEquals("cs", csArg0.unprocessedArgument);
+        assertEquals("cs", csArg0.getRenderedText());
+        assertEquals(43, csArg0.getStartIndex());
+        assertEquals(45, csArg0.getStopIndex());
+        assertEquals("cs", csArg0.getUnprocessedArgument());
 
         assertTrue(csArguments.get(1) instanceof Literal);
         final Literal csArg1 = (Literal) csArguments.get(1);
-        assertEquals("and", csArg1.getRenderableText());
-        assertEquals(46, csArg1.startIndex);
-        assertEquals(49, csArg1.stopIndex);
-        assertEquals("and", csArg1.unprocessedArgument);
+        assertEquals("and", csArg1.getRenderedText());
+        assertEquals(46, csArg1.getStartIndex());
+        assertEquals(49, csArg1.getStopIndex());
+        assertEquals("and", csArg1.getUnprocessedArgument());
 
         assertTrue(csArguments.get(2) instanceof QuotedString);
         final QuotedString csArg2 = (QuotedString) csArguments.get(2);
-        assertFalse(csArg2.isRenderableTextAvailableWithoutCommmandExecution());
-        assertEquals(50, csArg2.startIndex);
-        assertEquals(63, csArg2.stopIndex);
-        assertEquals("\"inner $(cs)\"", csArg2.unprocessedArgument);
+        assertFalse(csArg2.isRenderable());
+        assertEquals(50, csArg2.getStartIndex());
+        assertEquals(63, csArg2.getStopIndex());
+        assertEquals("\"inner $(cs)\"", csArg2.getUnprocessedArgument());
     }
 
     @Test(expected = ParseException.class)

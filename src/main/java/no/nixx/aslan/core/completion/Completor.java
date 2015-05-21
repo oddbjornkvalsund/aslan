@@ -103,8 +103,8 @@ public class Completor {
         }
 
         final Argument argumentToReplace = lastOf(commandToComplete.getArgumentsUnmodifiable());
-        final String commandUpToCompletion = command.substring(0, argumentToReplace.startIndex);
-        final String commandAfterCompletion = (command.length() < argumentToReplace.stopIndex) ? "" : command.substring(argumentToReplace.stopIndex);
+        final String commandUpToCompletion = command.substring(0, argumentToReplace.getStartIndex());
+        final String commandAfterCompletion = (command.length() < argumentToReplace.getStopIndex()) ? "" : command.substring(argumentToReplace.getStopIndex());
         final String completedCommand = commandUpToCompletion + completion + commandAfterCompletion;
         final int newTabPosition = commandUpToCompletion.length() + completion.length();
         return new CompletionResult(completedCommand, newTabPosition, onlyOneCompletion ? emptyList() : completions);
@@ -119,9 +119,11 @@ public class Completor {
             final Pipeline pipeline = parser.parseCommand(partialCommand);
 
             if (lastArgumentIsComplete(commandUpToTab)) {
-                final Literal emptyLiteral = new Literal("");
-                emptyLiteral.startIndex = emptyLiteral.stopIndex = commandUpToTab.length();
-                lastOf(pipeline.getCommandsUnmodifiable()).addArgument(emptyLiteral);
+                final Literal emptyLiteral = new Literal("", commandUpToTab.length(), commandUpToTab.length(), "");
+                final List<Command> commands = pipeline.getCommandsUnmodifiable();
+                final Command commandWithoutEmptyLiteral = lastOf(commands);
+                final Command commandWithEmptyLiteral = commandWithoutEmptyLiteral.addArgument(emptyLiteral);
+                return new Pipeline(replaceElement(commands, commandWithoutEmptyLiteral, commandWithEmptyLiteral));
             }
 
             return pipeline;
