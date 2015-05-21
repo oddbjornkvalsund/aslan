@@ -5,18 +5,19 @@ import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 public class VariableSubstitution extends Argument {
     public final String variableName;
 
-    public VariableSubstitution(String variableName) {
+    public VariableSubstitution(String variableName, int startIndex, int stopIndex, String unprocessedArgument) {
+        super(startIndex, stopIndex, unprocessedArgument);
         this.variableName = checkNotNull(variableName);
     }
 
     @Override
-    public boolean isRenderableTextAvailableWithoutCommmandExecution() {
+    public boolean isRenderable() {
         return false;
     }
 
     @Override
-    public String getRenderableText() {
-        throw new IllegalStateException("Renderable text is not available without commmand execution: " + this);
+    public String getRenderedText() {
+        throw new UnsupportedOperationException("Renderable text is not available without commmand execution: " + this);
     }
 
     @Override
@@ -25,17 +26,9 @@ public class VariableSubstitution extends Argument {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof VariableSubstitution) {
-            final VariableSubstitution that = (VariableSubstitution) obj;
-            return this.variableName.equals(that.variableName);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return variableName.hashCode();
+    public String toString() {
+        return "VariableSubstitution{" +
+                "variableName='" + variableName + '\'' +
+                '}';
     }
 }

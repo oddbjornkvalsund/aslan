@@ -1,6 +1,5 @@
 package no.nixx.aslan.pipeline.model;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.unmodifiableList;
@@ -8,62 +7,40 @@ import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 
 public class QuotedString extends Argument {
 
-    private final StringBuilder text;
+    private final String text;
     private final List<Component> components;
 
-    public QuotedString() {
-        this.text = new StringBuilder();
-        this.components = new ArrayList<>();
-    }
-
-    public QuotedString(String text, List<Component> components) {
-        this.text = new StringBuilder(text);
-        this.components = components;
-    }
-
-    public void appendText(String text) {
-        this.text.append(text);
-    }
-
-    public void addComponent(Argument argument) {
-        if (argument.isCommandSubstitution() || argument.isVariableSubstitution()) {
-            this.components.add(new Component(this.text.length(), argument));
-        } else {
-            throw new IllegalArgumentException("Invalid argument type: " + argument);
-        }
+    public QuotedString(String text, List<Component> components, int startIndex, int stopIndex, String unprocessedArgument) {
+        super(startIndex, stopIndex, unprocessedArgument);
+        this.text = checkNotNull(text);
+        this.components = unmodifiableList(checkNotNull(components));
     }
 
     @Override
-    public boolean isRenderableTextAvailableWithoutCommmandExecution() {
-        return components.stream().allMatch(c -> c.argument.isRenderableTextAvailableWithoutCommmandExecution());
+    public boolean isRenderable() {
+        return components.stream().allMatch(c -> c.argument.isRenderable());
     }
 
     @Override
-    public String getRenderableText() {
-        if (!isRenderableTextAvailableWithoutCommmandExecution()) {
-            throw new IllegalStateException("Renderable text is not available without commmand execution: " + this);
-        }
-
+    public String getRenderedText() {
         final StringBuilder sb = new StringBuilder(getText());
 
         int offset = 0;
         for (Component component : components) {
-            if (component.argument.isRenderableTextAvailableWithoutCommmandExecution()) {
-                final String renderableText = component.argument.getRenderableText();
-                sb.insert(component.position + offset, renderableText);
-                offset += renderableText.length();
-            }
+            final String text = component.argument.getRenderedText();
+            sb.insert(component.position + offset, text);
+            offset += text.length();
         }
 
         return sb.toString();
     }
 
     public String getText() {
-        return text.toString();
+        return text;
     }
 
-    public List<Component> getComponentsUnmodifiable() {
-        return unmodifiableList(this.components);
+    public List<Component> getComponents() {
+        return components;
     }
 
     @Override
@@ -71,28 +48,12 @@ public class QuotedString extends Argument {
         return true;
     }
 
-
     @Override
     public String toString() {
         return "QuotedString{" +
                 "text=" + text +
                 ", components=" + components +
                 '}';
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof QuotedString) {
-            final QuotedString that = (QuotedString) obj;
-            return this.text.toString().equals(that.text.toString()) && this.components.equals(that.components);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return text.hashCode() + components.hashCode();
     }
 
     public static class Component {
@@ -105,19 +66,5 @@ public class QuotedString extends Argument {
             this.argument = checkNotNull(argument);
         }
 
-        @Override
-        public boolean equals(Object obj) {
-            if (obj instanceof Component) {
-                final Component that = (Component) obj;
-                return this.position == that.position && this.argument.equals(that.argument);
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public int hashCode() {
-            return this.position + this.argument.hashCode();
-        }
     }
 }

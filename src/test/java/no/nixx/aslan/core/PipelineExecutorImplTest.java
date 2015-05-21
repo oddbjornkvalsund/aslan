@@ -71,7 +71,8 @@ public class PipelineExecutorImplTest {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         final PipelineExecutor executor = new PipelineExecutorImpl(threadPool, executableLocator, executionContextFactory, in, out, System.err);
         executionContextFactory.setVariable("HOME", "MyHome");
-        executor.execute(parser.parseCommand("echo ${HOME}"));
+        final Pipeline pipeline = parser.parseCommand("echo ${HOME}");
+        executor.execute(pipeline);
 
         assertEquals(format("MyHome%n"), out.toString());
     }

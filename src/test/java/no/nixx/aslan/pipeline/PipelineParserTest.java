@@ -49,7 +49,14 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(asList(new Literal("echo"), new VariableSubstitution("HOME")), echoCommand.getArgumentsUnmodifiable());
+
+        final List<Argument> arguments = echoCommand.getArguments();
+
+        assertTrue(arguments.get(0).isLiteral());
+        assertEquals("echo", ((Literal) arguments.get(0)).text);
+
+        assertTrue(arguments.get(1).isVariableSubstitution());
+        assertEquals("HOME", ((VariableSubstitution)arguments.get(1)).variableName);
     }
 
     @Test
@@ -61,10 +68,10 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
-        assertTrue(echoCommand.getArgumentsUnmodifiable().get(1) instanceof CommandSubstitution);
+        assertEquals(2, echoCommand.getArguments().size());
+        assertTrue(echoCommand.getArguments().get(1) instanceof CommandSubstitution);
 
-        final CommandSubstitution cs = (CommandSubstitution) echoCommand.getArgumentsUnmodifiable().get(1);
+        final CommandSubstitution cs = (CommandSubstitution) echoCommand.getArguments().get(1);
         final Pipeline csPipeline = cs.getPipeline();
         final Command csEchoCommand = csPipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", csEchoCommand.getExecutableName());
@@ -80,19 +87,20 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
+        assertEquals(2, echoCommand.getArguments().size());
 
-        final Argument argument = echoCommand.getArgumentsUnmodifiable().get(1);
+        final Argument argument = echoCommand.getArguments().get(1);
         assertTrue(argument instanceof QuotedString);
 
         final QuotedString quotedString = (QuotedString) argument;
         assertEquals("hello there ", quotedString.getText());
 
-        final List<QuotedString.Component> components = quotedString.getComponentsUnmodifiable();
+        final List<QuotedString.Component> components = quotedString.getComponents();
         assertEquals(1, components.size());
         final QuotedString.Component component = components.get(0);
         assertEquals(12, component.position);
-        assertEquals(new VariableSubstitution("FOO"), component.argument);
+        assertTrue(component.argument.isVariableSubstitution());
+        assertEquals("FOO", ((VariableSubstitution)component.argument).variableName);
     }
 
     @Test
@@ -104,15 +112,15 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
+        assertEquals(2, echoCommand.getArguments().size());
 
-        final Argument argument = echoCommand.getArgumentsUnmodifiable().get(1);
+        final Argument argument = echoCommand.getArguments().get(1);
         assertTrue(argument instanceof QuotedString);
 
         final QuotedString quotedString = (QuotedString) argument;
         assertEquals("hello there ", quotedString.getText());
 
-        final List<QuotedString.Component> components = quotedString.getComponentsUnmodifiable();
+        final List<QuotedString.Component> components = quotedString.getComponents();
         assertEquals(1, components.size());
         final QuotedString.Component component = components.get(0);
         assertEquals(12, component.position);
@@ -124,7 +132,7 @@ public class PipelineParserTest {
         assertEquals(1, csCommands.size());
 
         final Command csEchoCommand = csCommands.get(0);
-        assertEquals(2, csEchoCommand.getArgumentsUnmodifiable().size());
+        assertEquals(2, csEchoCommand.getArguments().size());
         assertEquals("echo", csEchoCommand.getExecutableName());
         assertEquals(asList("foo"), csEchoCommand.getRenderedArguments());
     }
@@ -137,18 +145,26 @@ public class PipelineParserTest {
 
         final Command echoCommand = pipeline.getCommandsUnmodifiable().get(0);
         assertEquals("echo", echoCommand.getExecutableName());
-        assertEquals(2, echoCommand.getArgumentsUnmodifiable().size());
+        assertEquals(2, echoCommand.getArguments().size());
 
-        final Argument argument = echoCommand.getArgumentsUnmodifiable().get(1);
+        final Argument argument = echoCommand.getArguments().get(1);
         assertTrue(argument.isCompositeArgument());
         final CompositeArgument compositeArgument = (CompositeArgument) argument;
         assertEquals(compositeArgument.size(), 5);
-        assertEquals(new Literal("complex"), compositeArgument.get(0));
-        assertEquals(new Literal("single quoted"), compositeArgument.get(1));
-        assertEquals(new QuotedString("double quoted", Collections.<QuotedString.Component>emptyList()), compositeArgument.get(2));
+        assertTrue(compositeArgument.get(0).isLiteral());
+        assertEquals("complex", compositeArgument.get(0).getRenderedText());
+        assertTrue(compositeArgument.get(1).isLiteral());
+        assertEquals("single quoted", compositeArgument.get(1).getRenderedText());
+        assertTrue(compositeArgument.get(2).isQuotedString());
+        final QuotedString quotedString = (QuotedString) compositeArgument.get(2);
+        assertEquals("double quoted", quotedString.getText());
+        assertEquals(Collections.<QuotedString.Component>emptyList(), quotedString.getComponents());
         assertTrue(compositeArgument.get(3).isCommandSubstitution());
         assertTrue(compositeArgument.get(4).isVariableSubstitution());
     }
+
+    // TODO: Since Arguments now require startIndex/stopIndex it's hard to assert equality by "new Literal(...)"
+    // TODO: Make assertLiteral(...), assertQuotedString(...) etc.
 
     @Test
     public void testParseAndAddArgumentPositions() {
@@ -157,7 +173,7 @@ public class PipelineParserTest {
         assertEquals(1, pipeline.getCommandsUnmodifiable().size());
 
         final Command command = pipeline.getCommandsUnmodifiable().get(0);
-        final List<Argument> arguments = command.getArgumentsUnmodifiable();
+        final List<Argument> arguments = command.getArguments();
         assertEquals(4, arguments.size());
 
         final Argument arg0 = arguments.get(0);
@@ -191,7 +207,7 @@ public class PipelineParserTest {
         final CommandSubstitution cs = (CommandSubstitution) arg3;
         final List<Command> csCommands = cs.getPipeline().getCommandsUnmodifiable();
         assertEquals(1, csCommands.size());
-        final List<Argument> csArguments = csCommands.get(0).getArgumentsUnmodifiable();
+        final List<Argument> csArguments = csCommands.get(0).getArguments();
 
         assertTrue(csArguments.get(0) instanceof Literal);
         final Literal csArg0 = (Literal) csArguments.get(0);

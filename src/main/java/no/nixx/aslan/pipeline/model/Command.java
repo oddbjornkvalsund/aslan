@@ -3,33 +3,39 @@ package no.nixx.aslan.pipeline.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.toList;
+import static no.nixx.aslan.core.utils.ListUtils.addElement;
 import static no.nixx.aslan.core.utils.ListUtils.allButFirstOf;
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
 import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 
 public class Command {
-    private final List<Argument> arguments = new ArrayList<>();
 
-    public void addArgument(Argument argument) {
-        this.arguments.add(argument);
+    public final int identity;
+    private final List<Argument> arguments;
+
+    public Command() {
+        identity = System.identityHashCode(this);
+        arguments = emptyList();
     }
 
-    public void replaceArgument(Argument oldArgument, Argument newArgument) {
-        if (this.arguments.contains(oldArgument)) {
-            this.arguments.set(this.arguments.indexOf(oldArgument), newArgument);
-        } else {
-            throw new IllegalArgumentException("No such element: " + oldArgument);
-        }
+    public Command(Command parent, List<Argument> arguments) {
+        this.identity = parent.identity;
+        this.arguments = unmodifiableList(arguments);
+    }
+
+    public Command addArgument(Argument argumentToAdd) {
+        return new Command(this, addElement(arguments, argumentToAdd));
     }
 
     public String getExecutableName() {
         final Argument firstArgument = firstOf(this.arguments);
-        if (firstArgument.isLiteral()) {
-            return ((Literal) firstArgument).text;
+        if (firstArgument.isRenderable()) {
+            return firstArgument.getRenderedText();
         } else {
-            throw new IllegalArgumentException("Executable name not a literal: " + firstArgument);
+            throw new IllegalStateException("Executable name not renderable without command execution: " + firstArgument);
         }
     }
 
@@ -63,17 +69,9 @@ public class Command {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof Command) {
-            final Command that = (Command) obj;
-            return this.arguments.equals(that.arguments);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return arguments.hashCode();
+    public String toString() {
+        return "Command{" +
+                "arguments=" + arguments +
+                '}';
     }
 }

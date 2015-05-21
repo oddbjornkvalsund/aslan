@@ -3,11 +3,23 @@ package no.nixx.aslan.core;
 import no.nixx.aslan.api.Executable;
 import no.nixx.aslan.api.ExecutionContext;
 import no.nixx.aslan.api.Program;
-import no.nixx.aslan.pipeline.model.*;
+import no.nixx.aslan.pipeline.model.Argument;
+import no.nixx.aslan.pipeline.model.Command;
+import no.nixx.aslan.pipeline.model.CommandSubstitution;
+import no.nixx.aslan.pipeline.model.CompositeArgument;
+import no.nixx.aslan.pipeline.model.Literal;
+import no.nixx.aslan.pipeline.model.Pipeline;
+import no.nixx.aslan.pipeline.model.QuotedString;
+import no.nixx.aslan.pipeline.model.VariableSubstitution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -15,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
 import static no.nixx.aslan.core.utils.ListUtils.lastOf;
+import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 import static no.nixx.aslan.core.utils.StringUtils.removeTrailingNewlines;
 
 public class PipelineExecutorImpl implements PipelineExecutor {
@@ -40,30 +53,35 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     @Override
     public void execute(Pipeline pipeline) {
         final ExecutionContext executionContextForExpansion = executionContextFactory.createExecutionContext(defaultInputStream, defaultOutputStream, defaultErrorStream);
-        expandArguments(executionContextForExpansion, pipeline);
-        executePipeline(pipeline, defaultInputStream, defaultOutputStream);
+        final Pipeline pipelineWithExpandedArguments = expandArguments(executionContextForExpansion, pipeline);
+        executePipeline(pipelineWithExpandedArguments, defaultInputStream, defaultOutputStream);
     }
 
-    private void expandArguments(ExecutionContext context, Pipeline pipeline) {
+    private Pipeline expandArguments(ExecutionContext context, Pipeline pipeline) {
+        final ArrayList<Command> expandedCommands = new ArrayList<>();
         for (Command command : pipeline.getCommandsUnmodifiable()) {
-            for (Argument argument : command.getArgumentsUnmodifiable()) {
-                final String expandedArgument;
-                if (argument.isRenderableTextAvailableWithoutCommmandExecution()) {
-                    expandedArgument = argument.getRenderableText();
+            final ArrayList<Argument> expandedArguments = new ArrayList<>();
+            for (Argument argument : command.getArguments()) {
+                final ExpandedArgument expandedArgument;
+                if (argument.isRenderable()) {
+                    expandedArgument = new ExpandedArgument(argument.getRenderedText());
                 } else if (argument.isCompositeArgument()) {
-                    expandedArgument = getString(context, (CompositeArgument) argument);
+                    expandedArgument = new ExpandedArgument(getString(context, (CompositeArgument) argument));
                 } else if (argument.isCommandSubstitution()) {
-                    expandedArgument = getString(context, (CommandSubstitution) argument);
+                    expandedArgument = new ExpandedArgument(getString(context, (CommandSubstitution) argument));
                 } else if (argument.isVariableSubstitution()) {
-                    expandedArgument = getString(context, (VariableSubstitution) argument);
+                    expandedArgument = new ExpandedArgument(getString(context, (VariableSubstitution) argument));
                 } else if (argument.isQuotedString()) {
-                    expandedArgument = getString(context, (QuotedString) argument);
+                    expandedArgument = new ExpandedArgument(getString(context, (QuotedString) argument));
                 } else {
-                    throw new IllegalArgumentException("Unknown argument type: " + argument);
+                    throw new IllegalStateException("What's this?");
                 }
-                command.replaceArgument(argument, new Literal(expandedArgument));
+                expandedArguments.add(expandedArgument);
             }
+            expandedCommands.add(new Command(command, expandedArguments));
         }
+
+        return new Pipeline(expandedCommands);
     }
 
     private String getString(Literal literal) {
@@ -74,17 +92,15 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         final StringBuilder sb = new StringBuilder(quotedString.getText());
 
         int offset = 0;
-        for (QuotedString.Component component : quotedString.getComponentsUnmodifiable()) {
+        for (QuotedString.Component component : quotedString.getComponents()) {
             final String expandedComponentText;
             if (component.argument.isVariableSubstitution()) {
                 final VariableSubstitution vs = (VariableSubstitution) component.argument;
-                final Literal expandedVariable = getExpandedVariable(context, vs);
-                expandedComponentText = expandedVariable.text;
+                expandedComponentText = getExpandedVariable(context, vs);
             } else if (component.argument.isCommandSubstitution()) {
                 final CommandSubstitution cs = (CommandSubstitution) component.argument;
-                expandArguments(context, cs.getPipeline());
-                final Literal expandedCommand = getExpandedCommand(cs.getPipeline());
-                expandedComponentText = expandedCommand.text;
+                final Pipeline expandedPipeline = expandArguments(context, cs.getPipeline());
+                expandedComponentText = getExpandedCommand(expandedPipeline);
             } else {
                 throw new IllegalStateException("Illegal component type, expected VariableSubstitution or CommandSubstitution: " + component.argument);
             }
@@ -97,12 +113,12 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     }
 
     private String getString(ExecutionContext context, VariableSubstitution vs) {
-        return getExpandedVariable(context, vs).text;
+        return getExpandedVariable(context, vs);
     }
 
     private String getString(ExecutionContext context, CommandSubstitution cs) {
-        expandArguments(context, cs.getPipeline());
-        return getExpandedCommand(cs.getPipeline()).text; // Does this method really to return a Literal?
+        final Pipeline expandedPipeline = expandArguments(context, cs.getPipeline());
+        return getExpandedCommand(expandedPipeline);
     }
 
     private String getString(ExecutionContext context, CompositeArgument compositeArgument) {
@@ -123,16 +139,16 @@ public class PipelineExecutorImpl implements PipelineExecutor {
         return sb.toString();
     }
 
-    private Literal getExpandedVariable(ExecutionContext context, VariableSubstitution vs) {
-        return new Literal(context.getVariable(vs.variableName));
+    private String getExpandedVariable(ExecutionContext context, VariableSubstitution vs) {
+        return context.getVariable(vs.variableName);
     }
 
-    private Literal getExpandedCommand(Pipeline pipeline) {
+    private String getExpandedCommand(Pipeline pipeline) {
         final InputStream in = new ByteArrayInputStream(new byte[0]);
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         executePipeline(pipeline, in, out);
 
-        return new Literal(removeTrailingNewlines(out.toString()));
+        return removeTrailingNewlines(out.toString());
     }
 
     private void executePipeline(Pipeline pipeline, InputStream outerInputStream, OutputStream outerOutputStream) {
@@ -246,6 +262,40 @@ public class PipelineExecutorImpl implements PipelineExecutor {
             this.executable = executable;
             this.executionContext = executionContext;
             this.args = args;
+        }
+    }
+
+    private class ExpandedArgument extends Argument {
+
+        private final String text;
+
+        public ExpandedArgument(String text) {
+            this.text = checkNotNull(text);
+        }
+
+        @Override
+        public boolean isRenderable() {
+            return true;
+        }
+
+        @Override
+        public String getRenderedText() {
+            return text;
+        }
+
+        @Override
+        public int getStartIndex() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int getStopIndex() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String getUnprocessedArgument() {
+            throw new UnsupportedOperationException();
         }
     }
 }

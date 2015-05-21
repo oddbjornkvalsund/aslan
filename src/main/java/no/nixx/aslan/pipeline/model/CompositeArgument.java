@@ -1,29 +1,32 @@
 package no.nixx.aslan.pipeline.model;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import static java.util.Collections.unmodifiableList;
+import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
 import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 
 public class CompositeArgument extends Argument implements Iterable<Argument> {
 
-    private final List<Argument> arguments = new ArrayList<>();
+    private final List<Argument> arguments;
 
-    @Override
-    public boolean isRenderableTextAvailableWithoutCommmandExecution() {
-        return arguments.stream().allMatch(Argument::isRenderableTextAvailableWithoutCommmandExecution);
+    public CompositeArgument(List<Argument> arguments, int startIndex, int stopIndex, String unprocessedArgument) {
+        super(startIndex, stopIndex, unprocessedArgument);
+        this.arguments = unmodifiableList(checkNotNull(arguments));
     }
 
     @Override
-    public String getRenderableText() {
-        if (!isRenderableTextAvailableWithoutCommmandExecution()) {
-            throw new IllegalStateException("Renderable text is not available without commmand execution: " + this);
-        }
+    public boolean isRenderable() {
+        return arguments.stream().allMatch(Argument::isRenderable);
+    }
 
+    @Override
+    public String getRenderedText() {
         final StringBuilder sb = new StringBuilder();
-        arguments.stream().forEach(s -> sb.append(s.getRenderableText()));
+        arguments.stream().forEach(s -> sb.append(s.getRenderedText()));
         return sb.toString();
     }
 
@@ -35,10 +38,6 @@ public class CompositeArgument extends Argument implements Iterable<Argument> {
     @Override
     public Iterator<Argument> iterator() {
         return arguments.iterator();
-    }
-
-    public void addArgument(Argument argument) {
-        arguments.add(argument);
     }
 
     public Argument get(int idx) {
