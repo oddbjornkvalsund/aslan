@@ -59,7 +59,7 @@ public class PipelineExecutorImpl implements PipelineExecutor {
 
     private Pipeline expandArguments(ExecutionContext context, Pipeline pipeline) {
         final ArrayList<Command> expandedCommands = new ArrayList<>();
-        for (Command command : pipeline.getCommandsUnmodifiable()) {
+        for (Command command : pipeline.getCommands()) {
             final ArrayList<Argument> expandedArguments = new ArrayList<>();
             for (Argument argument : command.getArguments()) {
                 final ExpandedArgument expandedArgument;
@@ -154,7 +154,7 @@ public class PipelineExecutorImpl implements PipelineExecutor {
     private void executePipeline(Pipeline pipeline, InputStream outerInputStream, OutputStream outerOutputStream) {
         final List<ExecutableWithExecutionContextAndArgs> executables = new ArrayList<>();
 
-        final List<Command> commands = pipeline.getCommandsUnmodifiable();
+        final List<Command> commands = pipeline.getCommands();
         if (commands.isEmpty()) {
             return;
         }

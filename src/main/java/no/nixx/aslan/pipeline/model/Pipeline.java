@@ -1,11 +1,11 @@
 package no.nixx.aslan.pipeline.model;
 
-import no.nixx.aslan.core.utils.ListUtils;
-
 import java.util.List;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
+import static no.nixx.aslan.core.utils.ListUtils.addElement;
 
 public class Pipeline {
 
@@ -15,16 +15,20 @@ public class Pipeline {
         this.commands = emptyList();
     }
 
+    public Pipeline(Command... commands) {
+        this.commands = unmodifiableList(asList(commands));
+    }
+
     public Pipeline(List<Command> commands) {
         this.commands = unmodifiableList(commands);
     }
 
     public Pipeline addCommand(Command command) {
-        return new Pipeline(ListUtils.addElement(commands, command));
+        return new Pipeline(addElement(commands, command));
     }
 
-    public List<Command> getCommandsUnmodifiable() {
-        return unmodifiableList(commands);
+    public List<Command> getCommands() {
+        return commands;
     }
 
     public Command getCommandAtPosition(int position) {

@@ -120,7 +120,7 @@ public class Completor {
 
             if (lastArgumentIsComplete(commandUpToTab)) {
                 final Literal emptyLiteral = new Literal("", commandUpToTab.length(), commandUpToTab.length(), "");
-                final List<Command> commands = pipeline.getCommandsUnmodifiable();
+                final List<Command> commands = pipeline.getCommands();
                 final Command commandWithoutEmptyLiteral = lastOf(commands);
                 final Command commandWithEmptyLiteral = commandWithoutEmptyLiteral.addArgument(emptyLiteral);
                 return new Pipeline(replaceElement(commands, commandWithoutEmptyLiteral, commandWithEmptyLiteral));

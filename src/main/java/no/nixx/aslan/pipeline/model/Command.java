@@ -1,7 +1,10 @@
 package no.nixx.aslan.pipeline.model;
 
+import java.util.Arrays;
 import java.util.List;
 
+import static java.lang.System.identityHashCode;
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.toList;
@@ -16,8 +19,13 @@ public class Command {
     private final List<Argument> arguments;
 
     public Command() {
-        identity = System.identityHashCode(this);
-        arguments = emptyList();
+        this.identity = identityHashCode(this);
+        this.arguments = emptyList();
+    }
+
+    public Command(Argument... arguments) {
+        this.identity = identityHashCode(this);
+        this.arguments = unmodifiableList(asList(arguments));
     }
 
     public Command(Command parent, List<Argument> arguments) {

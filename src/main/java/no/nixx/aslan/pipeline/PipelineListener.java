@@ -38,65 +38,11 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
     public Pipeline getPipeline() {
         if (pipelineStack.size() == 1) {
             final Pipeline pipeline = pipelineStack.pop();
-            return trimCompositeArguments(pipeline);
+            final PipelineTrimmer pipelineTrimmer = new PipelineTrimmer();
+            return pipelineTrimmer.trim(pipeline);
         } else {
             throw new IllegalStateException("Not balanced!");
         }
-    }
-
-    // TODO: This is a monster. Extract this method to a separate class
-    // TODO: Place start/stop/unprocessedArgument in a container class "ArgumentProperties"
-    // By default all components are added to the command as composite arguments. This method reduces the components to
-    // simpler argument types, if possible.
-    private Pipeline trimCompositeArguments(Pipeline pipeline) {
-        final List<Command> trimmedCommands = new ArrayList<>();
-        for (Command command : pipeline.getCommandsUnmodifiable()) {
-            final List<Argument> trimmedArguments = new ArrayList<>();
-            for (Argument argument : command.getArguments()) {
-                if (argument.isRenderable()) {
-                    final Literal literal = new Literal(argument.getRenderedText(), argument.getStartIndex(), argument.getStopIndex(), argument.getUnprocessedArgument());
-                    trimmedArguments.add(literal);
-                } else if (argument.isCompositeArgument()) {
-                    final List<Argument> trimmedCompositeArguments = new ArrayList<>();
-                    final CompositeArgument compositeArgument = (CompositeArgument) argument;
-                    for (Argument ca : compositeArgument) {
-                        if (ca.isQuotedString()) {
-                            final List<QuotedString.Component> trimmedComponents = new ArrayList<>();
-                            final QuotedString quotedString = (QuotedString) ca;
-                            for (QuotedString.Component component : quotedString.getComponents()) {
-                                if (component.argument.isCommandSubstitution()) {
-                                    final CommandSubstitution cs = (CommandSubstitution) component.argument;
-                                    final Pipeline trimmedPipeline = trimCompositeArguments(cs.getPipeline());
-                                    trimmedComponents.add(new QuotedString.Component(component.position, new CommandSubstitution(trimmedPipeline, cs.getStartIndex(), cs.getStopIndex(), cs.getUnprocessedArgument())));
-                                } else if (component.argument.isCompositeArgument()) {
-                                    throw new IllegalStateException("Directly nested composite components should not be possible, this is a bug.");
-                                } else {
-                                    trimmedComponents.add(component);
-                                }
-                            }
-                            trimmedCompositeArguments.add(new QuotedString(quotedString.getText(), trimmedComponents, quotedString.getStartIndex(), quotedString.getStopIndex(), quotedString.getUnprocessedArgument()));
-                        } else if (ca.isCommandSubstitution()) {
-                            final CommandSubstitution cs = (CommandSubstitution) ca;
-                            final Pipeline trimmedPipeline = trimCompositeArguments(cs.getPipeline());
-                            final CommandSubstitution trimmedCs = new CommandSubstitution(trimmedPipeline, cs.getStartIndex(), cs.getStopIndex(), cs.getUnprocessedArgument());
-                            trimmedCompositeArguments.add(trimmedCs);
-                        } else {
-                            trimmedCompositeArguments.add(ca);
-                        }
-                    }
-                    if (trimmedCompositeArguments.size() == 1) {
-                        trimmedArguments.add(trimmedCompositeArguments.get(0));
-                    } else {
-                        trimmedArguments.add(new CompositeArgument(trimmedCompositeArguments, compositeArgument.getStartIndex(), compositeArgument.getStopIndex(), compositeArgument.getUnprocessedArgument()));
-                    }
-                } else {
-                    trimmedArguments.add(argument);
-                }
-            }
-            trimmedCommands.add(new Command(command, trimmedArguments));
-        }
-
-        return new Pipeline(trimmedCommands);
     }
 
     private Command getCurrentCommand() {
