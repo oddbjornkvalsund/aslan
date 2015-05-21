@@ -10,8 +10,8 @@ public class QuotedString extends Argument {
     private final String text;
     private final List<Component> components;
 
-    public QuotedString(String text, List<Component> components, int startIndex, int stopIndex, String unprocessedArgument) {
-        super(startIndex, stopIndex, unprocessedArgument);
+    public QuotedString(String text, List<Component> components, ArgumentProperties properties) {
+        super(properties);
         this.text = checkNotNull(text);
         this.components = unmodifiableList(checkNotNull(components));
     }

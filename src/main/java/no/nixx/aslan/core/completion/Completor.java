@@ -4,10 +4,7 @@ import no.nixx.aslan.api.Executable;
 import no.nixx.aslan.api.ExecutionContext;
 import no.nixx.aslan.core.ExecutableLocator;
 import no.nixx.aslan.pipeline.PipelineParser;
-import no.nixx.aslan.pipeline.model.Argument;
-import no.nixx.aslan.pipeline.model.Command;
-import no.nixx.aslan.pipeline.model.Literal;
-import no.nixx.aslan.pipeline.model.Pipeline;
+import no.nixx.aslan.pipeline.model.*;
 
 import java.util.*;
 
@@ -119,7 +116,7 @@ public class Completor {
             final Pipeline pipeline = parser.parseCommand(partialCommand);
 
             if (lastArgumentIsComplete(commandUpToTab)) {
-                final Literal emptyLiteral = new Literal("", commandUpToTab.length(), commandUpToTab.length(), "");
+                final Literal emptyLiteral = new Literal("", new ArgumentProperties(commandUpToTab.length(), commandUpToTab.length(), ""));
                 final List<Command> commands = pipeline.getCommands();
                 final Command commandWithoutEmptyLiteral = lastOf(commands);
                 final Command commandWithEmptyLiteral = commandWithoutEmptyLiteral.addArgument(emptyLiteral);

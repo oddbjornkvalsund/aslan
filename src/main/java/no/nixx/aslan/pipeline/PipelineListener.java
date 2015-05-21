@@ -2,25 +2,16 @@ package no.nixx.aslan.pipeline;
 
 import no.nixx.aslan.antlr.AslanPipelineParser;
 import no.nixx.aslan.antlr.AslanPipelineParserBaseListener;
-import no.nixx.aslan.pipeline.model.Argument;
-import no.nixx.aslan.pipeline.model.Command;
-import no.nixx.aslan.pipeline.model.CommandSubstitution;
-import no.nixx.aslan.pipeline.model.CompositeArgument;
-import no.nixx.aslan.pipeline.model.Literal;
-import no.nixx.aslan.pipeline.model.Pipeline;
-import no.nixx.aslan.pipeline.model.QuotedString;
-import no.nixx.aslan.pipeline.model.VariableSubstitution;
+import no.nixx.aslan.pipeline.model.*;
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.NotNull;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.Stack;
+import java.util.*;
 
+import static no.nixx.aslan.core.utils.ListUtils.firstOf;
+import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 
 public class PipelineListener extends AslanPipelineParserBaseListener {
@@ -75,8 +66,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
 
     @Override
     public void exitCs(@NotNull AslanPipelineParser.CsContext ctx) {
-        final TokenProperties tp = getTokenProperties(ctx);
-        final CommandSubstitution cs = new CommandSubstitution(pipelineStack.pop(), tp.startIndex, tp.stopIndex, tp.unprocessedArgument);
+        final CommandSubstitution cs = new CommandSubstitution(pipelineStack.pop(), getArgumentProperties(ctx));
         if (inQuotedString()) {
             quotedStringCollector.addComponent(cs);
         } else {
@@ -86,8 +76,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
 
     @Override
     public void exitVs(@NotNull AslanPipelineParser.VsContext ctx) {
-        final TokenProperties tp = getTokenProperties(ctx);
-        final VariableSubstitution vs = new VariableSubstitution(ctx.VS_VARIABLE().getText(), tp.startIndex, tp.stopIndex, tp.unprocessedArgument);
+        final VariableSubstitution vs = new VariableSubstitution(ctx.VS_VARIABLE().getText(), getArgumentProperties(ctx));
         if (inQuotedString()) {
             quotedStringCollector.addComponent(vs);
         } else {
@@ -97,8 +86,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
 
     @Override
     public void exitLiteral(@NotNull AslanPipelineParser.LiteralContext ctx) {
-        final TokenProperties tp = getTokenProperties(ctx);
-        final Literal literal = new Literal(ctx.LT_TEXT().getText(), tp.startIndex, tp.stopIndex, tp.unprocessedArgument);
+        final Literal literal = new Literal(ctx.LT_TEXT().getText(), getArgumentProperties(ctx));
         getCurrentCompositeArgument().addArgument(literal);
     }
 
@@ -106,8 +94,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
     public void exitArg(@NotNull AslanPipelineParser.ArgContext ctx) {
         // This awkward test is here just because there is a lexer token "ARG" and a parser token "arg"
         if (ctx.ARG() != null) {
-            final TokenProperties tp = getTokenProperties(ctx);
-            final Literal literal = new Literal(ctx.ARG().getText(), tp.startIndex, tp.stopIndex, tp.unprocessedArgument);
+            final Literal literal = new Literal(ctx.ARG().getText(), getArgumentProperties(ctx));
             getCurrentCompositeArgument().addArgument(literal);
         }
     }
@@ -141,12 +128,12 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
 
     // No support for nested quoted strings at this point
 
-    private TokenProperties getTokenProperties(ParserRuleContext ctx) {
+    private ArgumentProperties getArgumentProperties(ParserRuleContext ctx) {
         final CommonToken start = (CommonToken) ctx.getStart();
         final CommonToken stop = (CommonToken) ctx.getStop();
         final String unprocessedArgument = ctx.getText();
 
-        return new TokenProperties(start.getStartIndex(), stop.getStopIndex() + 1, unprocessedArgument);
+        return new ArgumentProperties(start.getStartIndex(), stop.getStopIndex() + 1, unprocessedArgument);
     }
 
     private boolean inCompositeArgument() {
@@ -182,11 +169,11 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
 
         public CompositeArgument getCompositeArgument(ParserRuleContext ctx) {
             final CommonToken start = (CommonToken) ctx.getStart();
-            final int startIndex = arguments.get(0).getStartIndex();
-            final int stopIndex = arguments.get(arguments.size() - 1).getStopIndex();
+            final int startIndex = firstOf(arguments).getStartIndex();
+            final int stopIndex = lastOf(arguments).getStopIndex();
             final String unprocessedArgument = start.getTokenSource().getInputStream().getText(new Interval(startIndex, stopIndex - 1));
 
-            return new CompositeArgument(arguments, startIndex, stopIndex, unprocessedArgument);
+            return new CompositeArgument(arguments, new ArgumentProperties(startIndex, stopIndex, unprocessedArgument));
         }
     }
 
@@ -209,20 +196,7 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         }
 
         public QuotedString getQuotedString(ParserRuleContext ctx) {
-            final TokenProperties properties = getTokenProperties(ctx);
-            return new QuotedString(sb.toString(), components, properties.startIndex, properties.stopIndex, properties.unprocessedArgument);
-        }
-    }
-
-    private class TokenProperties {
-        final int startIndex;
-        final int stopIndex;
-        final String unprocessedArgument;
-
-        public TokenProperties(int startIndex, int stopIndex, String unprocessedArgument) {
-            this.startIndex = startIndex;
-            this.stopIndex = stopIndex;
-            this.unprocessedArgument = unprocessedArgument;
+            return new QuotedString(sb.toString(), components, getArgumentProperties(ctx));
         }
     }
 }

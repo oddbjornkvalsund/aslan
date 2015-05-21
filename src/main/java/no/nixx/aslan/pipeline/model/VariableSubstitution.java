@@ -5,8 +5,8 @@ import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 public class VariableSubstitution extends Argument {
     public final String variableName;
 
-    public VariableSubstitution(String variableName, int startIndex, int stopIndex, String unprocessedArgument) {
-        super(startIndex, stopIndex, unprocessedArgument);
+    public VariableSubstitution(String variableName, ArgumentProperties properties) {
+        super(properties);
         this.variableName = checkNotNull(variableName);
     }
 

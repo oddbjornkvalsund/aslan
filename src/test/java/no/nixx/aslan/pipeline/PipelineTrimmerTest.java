@@ -72,7 +72,7 @@ public class PipelineTrimmerTest {
     @Test
     public void testNestedPipelinesAreTrimmed() {
         final Pipeline innerPipeline = new Pipeline(new Command(compositeArgument("1", "2")));
-        final Pipeline outerPipeline = new Pipeline(new Command(compositeArgument(new CommandSubstitution(innerPipeline, 0, 0, ""))));
+        final Pipeline outerPipeline = new Pipeline(new Command(compositeArgument(new CommandSubstitution(innerPipeline, new ArgumentProperties(0, 0, "")))));
 
         final Pipeline trimmedPipeline = pipelineTrimmer.getTrimmedPipeline(outerPipeline);
         assertNumberOfCommands(trimmedPipeline, 1);
@@ -97,7 +97,7 @@ public class PipelineTrimmerTest {
     @Test
     public void testNestedPipelinesNotWrappedInCompositeArgumentsAreTrimmed() {
         final Pipeline innerPipeline = new Pipeline(new Command(compositeArgument("1", "2")));
-        final Pipeline outerPipeline = new Pipeline(new Command(new CommandSubstitution(innerPipeline, 0, 0, "")));
+        final Pipeline outerPipeline = new Pipeline(new Command(new CommandSubstitution(innerPipeline, new ArgumentProperties(0, 0, ""))));
 
         final Pipeline trimmedPipeline = pipelineTrimmer.getTrimmedPipeline(outerPipeline);
         assertNumberOfCommands(trimmedPipeline, 1);
@@ -124,7 +124,7 @@ public class PipelineTrimmerTest {
         // A composite argument within a quoted string is not really possible to express on the command line, but supported for completeness
         final CompositeArgument compositeArgument = compositeArgument("1", "2");
         final QuotedString.Component quotedStringComponent = new QuotedString.Component(4, compositeArgument);
-        final QuotedString quotedString = new QuotedString("test", singletonList(quotedStringComponent), 0, 0, "");
+        final QuotedString quotedString = new QuotedString("test", singletonList(quotedStringComponent), new ArgumentProperties(0, 0, ""));
         final Pipeline pipeline = new Pipeline(new Command(quotedString));
 
         final Pipeline trimmedPipeline = pipelineTrimmer.getTrimmedPipeline(pipeline);
@@ -141,10 +141,10 @@ public class PipelineTrimmerTest {
     @Test
     public void testCompositeArgumentsWithCommandSubstitutionInQuotedStringAreTrimmed() {
         // A composite argument within a quoted string is not really possible to express on the command line, but supported for completeness
-        final CommandSubstitution csWithCompositeArgument = new CommandSubstitution(new Pipeline(new Command(compositeArgument("1", "2"))), 0, 0, "");
-        final CompositeArgument compositeArgument = compositeArgument(new Literal("test", 0, 0, "test"), csWithCompositeArgument);
+        final CommandSubstitution csWithCompositeArgument = new CommandSubstitution(new Pipeline(new Command(compositeArgument("1", "2"))), new ArgumentProperties(0, 0, ""));
+        final CompositeArgument compositeArgument = compositeArgument(new Literal("test", new ArgumentProperties(0, 0, "test")), csWithCompositeArgument);
         final QuotedString.Component quotedStringComponent = new QuotedString.Component(4, compositeArgument);
-        final Pipeline pipeline = new Pipeline(new Command(new QuotedString("test", singletonList(quotedStringComponent), 0, 0, "")));
+        final Pipeline pipeline = new Pipeline(new Command(new QuotedString("test", singletonList(quotedStringComponent), new ArgumentProperties(0, 0, ""))));
 
         final Pipeline trimmedPipeline = pipelineTrimmer.getTrimmedPipeline(pipeline);
         assertNumberOfCommands(trimmedPipeline, 1);
@@ -175,9 +175,9 @@ public class PipelineTrimmerTest {
 
     @Test
     public void testNestedPipelineInQuotedStringIsTrimmed() {
-        final CommandSubstitution csWithCompositeArgument = new CommandSubstitution(new Pipeline(new Command(compositeArgument("1", "2"))), 0, 0, "");
+        final CommandSubstitution csWithCompositeArgument = new CommandSubstitution(new Pipeline(new Command(compositeArgument("1", "2"))), new ArgumentProperties(0, 0, ""));
         final QuotedString.Component quotedStringComponent = new QuotedString.Component(4, csWithCompositeArgument);
-        final QuotedString quotedString = new QuotedString("test", singletonList(quotedStringComponent), 0, 0, "");
+        final QuotedString quotedString = new QuotedString("test", singletonList(quotedStringComponent), new ArgumentProperties(0, 0, ""));
         final Pipeline pipeline = new Pipeline(new Command(quotedString));
 
         final Pipeline trimmedPipeline = pipelineTrimmer.getTrimmedPipeline(pipeline);
@@ -209,16 +209,16 @@ public class PipelineTrimmerTest {
     }
 
     private CompositeArgument compositeArgument(String... strings) {
-        final List<Argument> argumentList = Stream.of(strings).map(s -> new Literal(s, 0, 0, s)).collect(toList());
+        final List<Argument> argumentList = Stream.of(strings).map(s -> new Literal(s, new ArgumentProperties(0, 0, s))).collect(toList());
         return compositeArgument(argumentList.toArray(new Argument[argumentList.size()]));
     }
 
     private CompositeArgument compositeArgument(Argument... arguments) {
-        return new CompositeArgument(asList(arguments), 0, 0, "");
+        return new CompositeArgument(asList(arguments), new ArgumentProperties(0, 0, ""));
     }
 
     private CommandSubstitution commandSubstitution(String text) {
-        return new CommandSubstitution(new Pipeline(new Command(new Literal(text, 0, 0, text))), 0, 0, "$(" + text + ")");
+        return new CommandSubstitution(new Pipeline(new Command(new Literal(text, new ArgumentProperties(0, 0, text)))), new ArgumentProperties(0, 0, "$(" + text + ")"));
     }
 
 }

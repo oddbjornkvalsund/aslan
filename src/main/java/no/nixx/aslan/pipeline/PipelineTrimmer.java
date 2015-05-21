@@ -68,20 +68,20 @@ public class PipelineTrimmer {
                 trimmedComponents.add(component);
             }
         }
-        return new QuotedString(quotedString.getText(), trimmedComponents, quotedString.getStartIndex(), quotedString.getStopIndex(), quotedString.getUnprocessedArgument());
+        return new QuotedString(quotedString.getText(), trimmedComponents, quotedString.getProperties());
     }
 
     private CompositeArgument getTrimmedCompositeArgument(CompositeArgument ca) {
-        return new CompositeArgument(getTrimmedArguments(ca.getArguments()), ca.getStartIndex(), ca.getStopIndex(), ca.getUnprocessedArgument());
+        return new CompositeArgument(getTrimmedArguments(ca.getArguments()), ca.getProperties());
     }
 
     private CommandSubstitution getTrimmedCommandSubstitution(CommandSubstitution cs) {
-        return new CommandSubstitution(getTrimmedPipeline(cs.getPipeline()), cs.getStartIndex(), cs.getStopIndex(), cs.getUnprocessedArgument());
+        return new CommandSubstitution(getTrimmedPipeline(cs.getPipeline()), cs.getProperties());
     }
 
     private Literal getTrimmedRenderable(Argument argument) {
         Preconditions.checkArgument(argument.isRenderable());
-        return new Literal(argument.getRenderedText(), argument.getStartIndex(), argument.getStopIndex(), argument.getUnprocessedArgument());
+        return new Literal(argument.getRenderedText(), argument.getProperties());
     }
 
     private <T> T firstOf(Iterable<T> iterable) {

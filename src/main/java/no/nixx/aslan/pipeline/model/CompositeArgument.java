@@ -11,8 +11,8 @@ public class CompositeArgument extends Argument implements Iterable<Argument> {
 
     private final List<Argument> arguments;
 
-    public CompositeArgument(List<Argument> arguments, int startIndex, int stopIndex, String unprocessedArgument) {
-        super(startIndex, stopIndex, unprocessedArgument);
+    public CompositeArgument(List<Argument> arguments, ArgumentProperties properties) {
+        super(properties);
         this.arguments = unmodifiableList(checkNotNull(arguments));
     }
 

@@ -1,36 +1,30 @@
 package no.nixx.aslan.pipeline.model;
 
-import static no.nixx.aslan.core.utils.Preconditions.checkArgument;
 import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 
 public abstract class Argument {
 
-    private final int startIndex;
-    private final int stopIndex;
-    private final String unprocessedArgument;
+    private final ArgumentProperties properties;
 
     // This constructor should only be used by special subclasses such as ExpandedArgument in PipelineExecutor
     public Argument() {
-        this.startIndex = -1;
-        this.stopIndex = -1;
-        this.unprocessedArgument = null;
+        this.properties = ArgumentProperties.undefined();
     }
 
-    public Argument(int startIndex, int stopIndex, String unprocessedArgument) {
-        checkArgument(startIndex >= 0);
-        checkArgument(stopIndex >= 0);
-        checkNotNull(unprocessedArgument);
-        this.startIndex = startIndex;
-        this.stopIndex = stopIndex;
-        this.unprocessedArgument = unprocessedArgument;
+    public Argument(ArgumentProperties properties) {
+        this.properties = checkNotNull(properties);
     }
 
     public abstract boolean isRenderable();
 
     public abstract String getRenderedText();
 
+    public ArgumentProperties getProperties() {
+        return properties;
+    }
+
     public boolean spansPosition(int position) {
-        return startIndex <= position && stopIndex > position;
+        return properties.startIndex <= position && properties.stopIndex > position;
     }
 
     public boolean isLiteral() {
@@ -54,14 +48,14 @@ public abstract class Argument {
     }
 
     public int getStartIndex() {
-        return startIndex;
+        return properties.startIndex;
     }
 
     public int getStopIndex() {
-        return stopIndex;
+        return properties.stopIndex;
     }
 
     public String getUnprocessedArgument() {
-        return unprocessedArgument;
+        return properties.unprocessedArgument;
     }
 }

@@ -6,8 +6,8 @@ public class CommandSubstitution extends Argument {
 
     private final Pipeline pipeline;
 
-    public CommandSubstitution(Pipeline pipeline, int startIndex, int stopIndex, String unprocessedArgument) {
-        super(startIndex, stopIndex, unprocessedArgument);
+    public CommandSubstitution(Pipeline pipeline, ArgumentProperties properties) {
+        super(properties);
         this.pipeline = checkNotNull(pipeline);
     }
 

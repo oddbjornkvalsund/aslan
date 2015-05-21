@@ -6,8 +6,8 @@ public class Literal extends Argument {
 
     public final String text;
 
-    public Literal(String text, int startIndex, int stopIndex, String unprocessedArgument) {
-        super(startIndex, stopIndex, unprocessedArgument);
+    public Literal(String text, ArgumentProperties properties) {
+        super(properties);
         this.text = checkNotNull(text);
     }
 
