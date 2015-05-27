@@ -49,17 +49,12 @@ public class Completor {
 
             final boolean doCompleteExecutableName = isFirstOf(commandToComplete.getArguments(), argumentToComplete);
             final String executableName = doCompleteExecutableName ? renderedArgumentToComplete : commandToComplete.getExecutableName();
-            final Executable executable = executableLocator.lookupExecutable(executableName);
-            final List<String> executableCandidates = executableLocator.findExecutableCandidates(executableName);
 
             if (doCompleteExecutableName) {
-                if (executableCandidates.isEmpty()) {
-                    return emptyCompletionResult;
-                } else {
-                    return createCompletionResult(command, argumentToComplete, executableCandidates, true, true);
-                }
+                return createCompletionResult(command, argumentToComplete, executableLocator.findExecutableCandidates(executableName), true, true);
             }
 
+            final Executable executable = executableLocator.lookupExecutable(executableName);
             if (!(executable instanceof Completable)) {
                 return emptyCompletionResult;
             }
