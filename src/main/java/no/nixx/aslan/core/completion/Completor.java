@@ -6,9 +6,7 @@ import no.nixx.aslan.core.ExecutableLocator;
 import no.nixx.aslan.core.utils.Preconditions;
 import no.nixx.aslan.pipeline.PipelineParser;
 import no.nixx.aslan.pipeline.model.Argument;
-import no.nixx.aslan.pipeline.model.ArgumentProperties;
 import no.nixx.aslan.pipeline.model.Command;
-import no.nixx.aslan.pipeline.model.Literal;
 import no.nixx.aslan.pipeline.model.Pipeline;
 
 import java.util.ArrayList;
@@ -24,17 +22,17 @@ import static no.nixx.aslan.core.utils.ListUtils.allButLastOf;
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
 import static no.nixx.aslan.core.utils.ListUtils.isFirstOf;
 import static no.nixx.aslan.core.utils.ListUtils.lastOf;
-import static no.nixx.aslan.core.utils.ListUtils.replaceElement;
 import static no.nixx.aslan.core.utils.StringUtils.anyContainsWhiteSpace;
 import static no.nixx.aslan.core.utils.StringUtils.containsWhiteSpace;
 import static no.nixx.aslan.core.utils.StringUtils.getCommonStartOfStrings;
-import static no.nixx.aslan.core.utils.StringUtils.inDoubleQuotes;
-import static no.nixx.aslan.core.utils.StringUtils.inSingleQuotes;
 
 public class Completor {
 
     public CompletionResult getCompletions(String command, int tabPosition, ExecutableLocator executableLocator, ExecutionContext executionContext) {
+        Preconditions.checkNotNull(command);
         Preconditions.checkArgument(tabPosition <= command.length());
+        Preconditions.checkNotNull(executableLocator);
+        Preconditions.checkNotNull(executionContext);
 
         final CompletionResult emptyCompletionResult = createEmptyCompletionResult(command, tabPosition);
         final Pipeline pipelineToComplete = parseCommand(command);
@@ -44,33 +42,22 @@ public class Completor {
             return emptyCompletionResult;
         } else {
             final Command commandToComplete = pipelineToComplete.getCommandAtPosition(tabPosition);
-
             final Argument argumentToComplete = commandToComplete.getArgumentAtPosition(tabPosition);
+
             final String renderedArgumentToComplete = argumentToComplete.substring(tabPosition);
+            final List<String> renderedPrecedingArguments = commandToComplete.getPrecedingArguments(argumentToComplete).stream().map(Argument::getRenderedText).collect(toList());
 
-            final List<Argument> arguments = commandToComplete.getArguments();
-            final List<String> renderedArguments = commandToComplete.getRenderedArguments(); // TODO: Rename to indicate that this method returns the tail of the arguments
-
-            final List<Argument> precedingArguments = commandToComplete.getPrecedingArguments(argumentToComplete);
-            final List<String> renderedPrecedingArguments = precedingArguments.stream().map(Argument::getRenderedText).collect(toList());
-
-            final String executableName = isFirstOf(arguments, argumentToComplete) ? renderedArgumentToComplete : commandToComplete.getExecutableName();
+            final boolean doCompleteExecutableName = isFirstOf(commandToComplete.getArguments(), argumentToComplete);
+            final String executableName = doCompleteExecutableName ? renderedArgumentToComplete : commandToComplete.getExecutableName();
             final Executable executable = executableLocator.lookupExecutable(executableName);
             final List<String> executableCandidates = executableLocator.findExecutableCandidates(executableName);
 
-            final boolean noExecutableCandidates = executableCandidates.isEmpty();
-            final boolean manyExecutableCandidates = executableCandidates.size() > 1;
-            final boolean executableNameNotFullyMatched = executableCandidates.size() == 1 && executable == null;
-
-            if (noExecutableCandidates) {
-                return emptyCompletionResult;
-            }
-            if (manyExecutableCandidates || executableNameNotFullyMatched) {
-                return createCompletionResult(command, argumentToComplete, executableCandidates, true, true);
-            }
-
-            if (renderedArguments.isEmpty()) {
-                return new CompletionResult(command + " ", tabPosition + 1, emptyList());
+            if (doCompleteExecutableName) {
+                if (executableCandidates.isEmpty()) {
+                    return emptyCompletionResult;
+                } else {
+                    return createCompletionResult(command, argumentToComplete, executableCandidates, true, true);
+                }
             }
 
             if (!(executable instanceof Completable)) {
@@ -130,26 +117,10 @@ public class Completor {
 
         try {
             final PipelineParser parser = new PipelineParser();
-            final Pipeline pipeline = parser.parseCommand(supplementedCommand);
-
-            // TODO: Check if we can get rid of this
-            if (lastArgumentIsComplete(command)) {
-                final Literal emptyLiteral = new Literal("", new ArgumentProperties(command.length(), command.length(), ""));
-                final List<Command> commands = pipeline.getCommands();
-                final Command commandWithoutEmptyLiteral = lastOf(commands);
-                final Command commandWithEmptyLiteral = commandWithoutEmptyLiteral.addArgument(emptyLiteral);
-                return new Pipeline(replaceElement(commands, commandWithoutEmptyLiteral, commandWithEmptyLiteral));
-            }
-
-            return pipeline;
+            return parser.parseCommand(supplementedCommand);
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private boolean lastArgumentIsComplete(String command) {
-        final boolean notInQuotes = !(inSingleQuotes(command) || inDoubleQuotes(command));
-        return notInQuotes && command.endsWith(" ");
     }
 
     private TemporaryCompletionResult getPartiallyMatchingCompletions(CompletionSpecRoot completionSpecRoot, String argumentToComplete, List<String> precedingArguments) {
