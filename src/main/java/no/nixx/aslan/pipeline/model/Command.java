@@ -1,6 +1,5 @@
 package no.nixx.aslan.pipeline.model;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static java.lang.System.identityHashCode;
@@ -11,26 +10,45 @@ import static java.util.stream.Collectors.toList;
 import static no.nixx.aslan.core.utils.ListUtils.addElement;
 import static no.nixx.aslan.core.utils.ListUtils.allButFirstOf;
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
-import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 
 public class Command {
 
     private final int identity;
     private final List<Argument> arguments;
+    private final CommandProperties properties;
 
     public Command() {
         this.identity = identityHashCode(this);
         this.arguments = emptyList();
+        this.properties = CommandProperties.undefined();
     }
 
     public Command(Argument... arguments) {
         this.identity = identityHashCode(this);
         this.arguments = unmodifiableList(asList(arguments));
+        this.properties = CommandProperties.undefined();
+    }
+
+    public Command(CommandProperties properties, Argument... arguments) {
+        this.identity = identityHashCode(this);
+        this.arguments = unmodifiableList(asList(arguments));
+        this.properties = properties;
     }
 
     public Command(Command parent, List<Argument> arguments) {
         this.identity = parent.identity;
         this.arguments = unmodifiableList(arguments);
+        this.properties = parent.properties;
+    }
+
+    public Command(Command parent, CommandProperties properties) {
+        this.identity = parent.identity;
+        this.arguments = parent.arguments;
+        if (parent.properties.isUndefined()) {
+            this.properties = properties;
+        } else {
+            throw new IllegalStateException("Could not add properties to Command with already defined properties: " + this);
+        }
     }
 
     public int getIdentity() {
@@ -42,7 +60,8 @@ public class Command {
     }
 
     public Argument getArgumentAtPosition(int position) {
-        return arguments.stream().filter(a -> a.spansPosition(position)).findFirst().orElse(null);
+        final Literal emptyArgument = new Literal("", new ArgumentProperties(position, position, ""));
+        return arguments.stream().filter(a -> a.spansPosition(position)).findFirst().orElse(emptyArgument);
     }
 
     // NOTE: This method does not return the executable name!
@@ -50,8 +69,24 @@ public class Command {
         return allButFirstOf(arguments).stream().map(Argument::getRenderedText).collect(toList());
     }
 
+    public List<Argument> getPrecedingArguments(Argument arg) {
+        return arguments.stream().filter(a -> a.precedes(arg)).collect(toList());
+    }
+
     public Command addArgument(Argument argumentToAdd) {
         return new Command(this, addElement(arguments, argumentToAdd));
+    }
+
+    public Command addProperties(CommandProperties properties) {
+        return new Command(this, properties);
+    }
+
+    public int getStartIndex() {
+        return properties.startIndex;
+    }
+
+    public int getStopIndex() {
+        return properties.stopIndex;
     }
 
     public String getExecutableName() {
@@ -64,14 +99,7 @@ public class Command {
     }
 
     public boolean spansPosition(int position) {
-        if (arguments.isEmpty()) {
-            return false;
-        } else {
-            final Argument first = firstOf(arguments);
-            final Argument last = lastOf(arguments);
-
-            return first.getStartIndex() <= position && last.getStopIndex() > position;
-        }
+        return properties.startIndex <= position && properties.stopIndex >= position;
     }
 
     @Override

@@ -3,68 +3,93 @@ package no.nixx.aslan.core.completion;
 import no.nixx.aslan.api.Executable;
 import no.nixx.aslan.api.ExecutionContext;
 import no.nixx.aslan.core.ExecutableLocator;
+import no.nixx.aslan.core.utils.Preconditions;
 import no.nixx.aslan.pipeline.PipelineParser;
-import no.nixx.aslan.pipeline.model.*;
+import no.nixx.aslan.pipeline.model.Argument;
+import no.nixx.aslan.pipeline.model.ArgumentProperties;
+import no.nixx.aslan.pipeline.model.Command;
+import no.nixx.aslan.pipeline.model.Literal;
+import no.nixx.aslan.pipeline.model.Pipeline;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import static java.lang.Math.min;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
-import static no.nixx.aslan.core.utils.ListUtils.*;
-import static no.nixx.aslan.core.utils.StringUtils.*;
+import static no.nixx.aslan.core.utils.ListUtils.allButLastOf;
+import static no.nixx.aslan.core.utils.ListUtils.firstOf;
+import static no.nixx.aslan.core.utils.ListUtils.isFirstOf;
+import static no.nixx.aslan.core.utils.ListUtils.lastOf;
+import static no.nixx.aslan.core.utils.ListUtils.replaceElement;
+import static no.nixx.aslan.core.utils.StringUtils.anyContainsWhiteSpace;
+import static no.nixx.aslan.core.utils.StringUtils.containsWhiteSpace;
+import static no.nixx.aslan.core.utils.StringUtils.getCommonStartOfStrings;
+import static no.nixx.aslan.core.utils.StringUtils.inDoubleQuotes;
+import static no.nixx.aslan.core.utils.StringUtils.inSingleQuotes;
 
 public class Completor {
 
     public CompletionResult getCompletions(String command, int tabPosition, ExecutableLocator executableLocator, ExecutionContext executionContext) {
+        Preconditions.checkArgument(tabPosition <= command.length());
+
         final CompletionResult emptyCompletionResult = createEmptyCompletionResult(command, tabPosition);
-        final String commandUpToTab = command.substring(0, tabPosition);
-        final Pipeline pipelineToComplete = parseCommand(commandUpToTab);
+        final Pipeline pipelineToComplete = parseCommand(command);
         final boolean isUnableToParsePipeline = pipelineToComplete == null;
 
         if (isUnableToParsePipeline) {
             return emptyCompletionResult;
         } else {
-            final Command commandToComplete = pipelineToComplete.getCommandAtPosition(tabPosition - 1);
-            final Executable executable = executableLocator.lookupExecutable(commandToComplete.getExecutableName());
-            final List<String> executableCandidates = executableLocator.findExecutableCandidates(commandToComplete.getExecutableName());
+            final Command commandToComplete = pipelineToComplete.getCommandAtPosition(tabPosition);
+
+            final Argument argumentToComplete = commandToComplete.getArgumentAtPosition(tabPosition);
+            final String renderedArgumentToComplete = argumentToComplete.substring(tabPosition);
+
+            final List<Argument> arguments = commandToComplete.getArguments();
+            final List<String> renderedArguments = commandToComplete.getRenderedArguments(); // TODO: Rename to indicate that this method returns the tail of the arguments
+
+            final List<Argument> precedingArguments = commandToComplete.getPrecedingArguments(argumentToComplete);
+            final List<String> renderedPrecedingArguments = precedingArguments.stream().map(Argument::getRenderedText).collect(toList());
+
+            final String executableName = isFirstOf(arguments, argumentToComplete) ? renderedArgumentToComplete : commandToComplete.getExecutableName();
+            final Executable executable = executableLocator.lookupExecutable(executableName);
+            final List<String> executableCandidates = executableLocator.findExecutableCandidates(executableName);
 
             final boolean noExecutableCandidates = executableCandidates.isEmpty();
-            final boolean oneExecutableCandidate = executableCandidates.size() == 1;
-            final boolean executableNameNotFullyMatched = executable == null;
+            final boolean manyExecutableCandidates = executableCandidates.size() > 1;
+            final boolean executableNameNotFullyMatched = executableCandidates.size() == 1 && executable == null;
 
             if (noExecutableCandidates) {
                 return emptyCompletionResult;
-            } else if (oneExecutableCandidate) {
-                if (executableNameNotFullyMatched) {
-                    return createCompletionResult(command, commandToComplete, executableCandidates, true, true);
-                } else {
-                    final List<String> arguments = commandToComplete.getRenderedArguments();
-                    if (arguments.isEmpty()) {
-                        return new CompletionResult(command + " ", tabPosition + 1, emptyList());
-                    } else {
-                        if (executable instanceof Completable) {
-                            final Completable completable = (Completable) executable;
-                            final CompletionSpecRoot completionSpecRoot = completable.getCompletionSpec(executionContext);
+            }
+            if (manyExecutableCandidates || executableNameNotFullyMatched) {
+                return createCompletionResult(command, argumentToComplete, executableCandidates, true, true);
+            }
 
-                            final TemporaryCompletionResult partialCompletionResult = getPartiallyMatchingCompletions(completionSpecRoot, arguments);
-                            if (partialCompletionResult.completions.isEmpty()) {
-                                final TemporaryCompletionResult completeCompletionResult = getCompletelyMatchingCompletions(completionSpecRoot, arguments);
-                                if (completeCompletionResult.completions.isEmpty()) {
-                                    return emptyCompletionResult;
-                                } else {
-                                    return createCompletionResult(command, commandToComplete, completeCompletionResult.completions, completeCompletionResult.appendSpace, completeCompletionResult.appendQuote);
-                                }
-                            } else {
-                                return createCompletionResult(command, commandToComplete, partialCompletionResult.completions, partialCompletionResult.appendSpace, partialCompletionResult.appendQuote);
-                            }
-                        } else {
-                            return emptyCompletionResult;
-                        }
-                    }
+            if (renderedArguments.isEmpty()) {
+                return new CompletionResult(command + " ", tabPosition + 1, emptyList());
+            }
+
+            if (!(executable instanceof Completable)) {
+                return emptyCompletionResult;
+            }
+
+            final Completable completable = (Completable) executable;
+            final CompletionSpecRoot completionSpecRoot = completable.getCompletionSpec(executionContext);
+
+            final TemporaryCompletionResult partialCompletionResult = getPartiallyMatchingCompletions(completionSpecRoot, renderedArgumentToComplete, renderedPrecedingArguments);
+            if (partialCompletionResult.completions.isEmpty()) {
+                final TemporaryCompletionResult completeCompletionResult = getCompletelyMatchingCompletions(completionSpecRoot, renderedArgumentToComplete, renderedPrecedingArguments);
+                if (completeCompletionResult.completions.isEmpty()) {
+                    return emptyCompletionResult;
+                } else {
+                    return createCompletionResult(command, argumentToComplete, completeCompletionResult.completions, completeCompletionResult.appendSpace, completeCompletionResult.appendQuote);
                 }
             } else {
-                return createCompletionResult(command, commandToComplete, executableCandidates, true, true);
+                return createCompletionResult(command, argumentToComplete, partialCompletionResult.completions, partialCompletionResult.appendSpace, partialCompletionResult.appendQuote);
             }
         }
     }
@@ -73,7 +98,7 @@ public class Completor {
         return new CompletionResult(command, tabPosition, emptyList());
     }
 
-    private CompletionResult createCompletionResult(String command, Command commandToComplete, List<String> completions, boolean doAppendSpace, boolean doAppendQuote) {
+    private CompletionResult createCompletionResult(String command, Argument argumentToReplace, List<String> completions, boolean doAppendSpace, boolean doAppendQuote) {
         final boolean onlyOneCompletion = (completions.size() == 1);
         final String completion;
         if (onlyOneCompletion) {
@@ -92,7 +117,6 @@ public class Completor {
             }
         }
 
-        final Argument argumentToReplace = lastOf(commandToComplete.getArguments());
         final String commandUpToCompletion = command.substring(0, argumentToReplace.getStartIndex());
         final String commandAfterCompletion = command.substring(min(command.length(), argumentToReplace.getStopIndex()));
         final String completedCommand = commandUpToCompletion + completion + commandAfterCompletion;
@@ -100,16 +124,17 @@ public class Completor {
         return new CompletionResult(completedCommand, newTabPosition, onlyOneCompletion ? emptyList() : completions);
     }
 
-    private Pipeline parseCommand(String commandUpToTab) {
+    private Pipeline parseCommand(String command) {
         final PartialPipelineSupplementor partialPipelineSupplementor = new PartialPipelineSupplementor();
-        final String partialCommand = partialPipelineSupplementor.supplementPipeline(commandUpToTab);
+        final String supplementedCommand = partialPipelineSupplementor.supplementPipeline(command);
 
         try {
             final PipelineParser parser = new PipelineParser();
-            final Pipeline pipeline = parser.parseCommand(partialCommand);
+            final Pipeline pipeline = parser.parseCommand(supplementedCommand);
 
-            if (lastArgumentIsComplete(commandUpToTab)) {
-                final Literal emptyLiteral = new Literal("", new ArgumentProperties(commandUpToTab.length(), commandUpToTab.length(), ""));
+            // TODO: Check if we can get rid of this
+            if (lastArgumentIsComplete(command)) {
+                final Literal emptyLiteral = new Literal("", new ArgumentProperties(command.length(), command.length(), ""));
                 final List<Command> commands = pipeline.getCommands();
                 final Command commandWithoutEmptyLiteral = lastOf(commands);
                 final Command commandWithEmptyLiteral = commandWithoutEmptyLiteral.addArgument(emptyLiteral);
@@ -127,24 +152,18 @@ public class Completor {
         return notInQuotes && command.endsWith(" ");
     }
 
-    private TemporaryCompletionResult getPartiallyMatchingCompletions(CompletionSpecRoot completionSpecRoot, List<String> arguments) {
-        return getMatchingCompletions(completionSpecRoot, arguments, false);
+    private TemporaryCompletionResult getPartiallyMatchingCompletions(CompletionSpecRoot completionSpecRoot, String argumentToComplete, List<String> precedingArguments) {
+        return getMatchingCompletions(completionSpecRoot, false, argumentToComplete, precedingArguments);
     }
 
-    private TemporaryCompletionResult getCompletelyMatchingCompletions(CompletionSpecRoot completionSpecRoot, List<String> arguments) {
-        return getMatchingCompletions(completionSpecRoot, arguments, true);
+    private TemporaryCompletionResult getCompletelyMatchingCompletions(CompletionSpecRoot completionSpecRoot, String argumentToComplete, List<String> precedingArguments) {
+        return getMatchingCompletions(completionSpecRoot, true, argumentToComplete, precedingArguments);
     }
 
-    private TemporaryCompletionResult getMatchingCompletions(CompletionSpecRoot completionSpecRoot, List<String> arguments, boolean findCompleteMatches) {
-        if (arguments.isEmpty()) {
-            return new TemporaryCompletionResult(true, true, emptyList());
-        }
-        final String argumentToComplete = lastOf(arguments);
-        final List<String> preceedingArguments = allButLastOf(arguments);
-
+    private TemporaryCompletionResult getMatchingCompletions(CompletionSpecRoot completionSpecRoot, boolean findCompleteMatches, String argumentToComplete, List<String> precedingArguments) {
         final List<CompletionSpec> matchingNodes = (findCompleteMatches) ? findCompleteMatchingNodes(completionSpecRoot, argumentToComplete) : findPartialMatchingNodes(completionSpecRoot, argumentToComplete);
-        final List<CompletionSpec> nodesWithCompleteAncestry = findNodesWithCompleteAncestry(matchingNodes, arguments);
-        final List<CompletionSpec> nodesWithCorrectOccurenceCount = findNodesWithCorrectOccurenceCount(nodesWithCompleteAncestry, preceedingArguments);
+        final List<CompletionSpec> nodesWithCompleteAncestry = findNodesWithCompleteAncestry(matchingNodes, precedingArguments);
+        final List<CompletionSpec> nodesWithCorrectOccurenceCount = findNodesWithCorrectOccurenceCount(nodesWithCompleteAncestry, precedingArguments);
 
         return findMostDeeplyNestedCompletions(argumentToComplete, nodesWithCorrectOccurenceCount);
     }

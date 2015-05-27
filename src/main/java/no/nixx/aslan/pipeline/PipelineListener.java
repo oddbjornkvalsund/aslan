@@ -2,13 +2,26 @@ package no.nixx.aslan.pipeline;
 
 import no.nixx.aslan.antlr.AslanPipelineParser;
 import no.nixx.aslan.antlr.AslanPipelineParserBaseListener;
-import no.nixx.aslan.pipeline.model.*;
+import no.nixx.aslan.pipeline.model.Argument;
+import no.nixx.aslan.pipeline.model.ArgumentProperties;
+import no.nixx.aslan.pipeline.model.Command;
+import no.nixx.aslan.pipeline.model.CommandProperties;
+import no.nixx.aslan.pipeline.model.CommandSubstitution;
+import no.nixx.aslan.pipeline.model.CompositeArgument;
+import no.nixx.aslan.pipeline.model.Literal;
+import no.nixx.aslan.pipeline.model.Pipeline;
+import no.nixx.aslan.pipeline.model.QuotedString;
+import no.nixx.aslan.pipeline.model.VariableSubstitution;
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.NotNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.Stack;
 
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
 import static no.nixx.aslan.core.utils.ListUtils.lastOf;
@@ -105,7 +118,9 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
         if (!compositeArgumentCollector.isEmpty()) {
             addArgumentToCurrentCommand(compositeArgumentCollector.getCompositeArgument(ctx));
         }
-        addCommandToCurrentPipeline(commandStack.pop());
+
+        final CommandProperties properties = new CommandProperties(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex() + 1);
+        addCommandToCurrentPipeline(commandStack.pop().addProperties(properties));
     }
 
     @Override
@@ -149,9 +164,8 @@ public class PipelineListener extends AslanPipelineParserBaseListener {
     }
 
     private boolean inQuotedString() {
-        // Must compare with ==, not contains()
-        // Contains() calls equals() that might return true for two commands that are equal but not the same instance
-//        return commandsCurrentlyInQuotedString.stream().anyMatch((Command c) -> c == getCurrentCommand());
+        // Must compare with == on identity, not commandsCurrentlyInQuotedString.contains(getCurrentCommand()).
+        // List.contains() calls equals() that might return true for two commands that are equal in content, but not the same instance.
         return commandsCurrentlyInQuotedString.stream().anyMatch((Command c) -> c.getIdentity() == getCurrentCommand().getIdentity());
     }
 

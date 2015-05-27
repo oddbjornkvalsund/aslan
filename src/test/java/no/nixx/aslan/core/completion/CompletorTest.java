@@ -1,12 +1,8 @@
-package no.nixx.aslan.completion;
+package no.nixx.aslan.core.completion;
 
 import no.nixx.aslan.api.Executable;
 import no.nixx.aslan.completion.specs.TestFilesCompletionSpec;
 import no.nixx.aslan.core.ExecutableLocator;
-import no.nixx.aslan.core.completion.CompletionResult;
-import no.nixx.aslan.core.completion.CompletionSpec;
-import no.nixx.aslan.core.completion.CompletionSpecRoot;
-import no.nixx.aslan.core.completion.Completor;
 import no.nixx.aslan.util.TestExecutable;
 import no.nixx.aslan.util.TestExecutableLocator;
 import org.junit.Test;
@@ -92,6 +88,15 @@ public class CompletorTest {
 
         result = completor.getCompletions("git add file f fileB", 14, executableLocator, null);
         assertEquals(new CompletionResult("git add file file fileB", 17, asList("fileA", "fileB", "fileC")), result);
+
+        result = completor.getCompletions("grit", 1, executableLocator, null);
+        assertEquals(new CompletionResult("git ", 4, asList()), result);
+
+        result = completor.getCompletions("git asdd", 5, executableLocator, null);
+        assertEquals(new CompletionResult("git add ", 8, asList()), result);
+
+        result = completor.getCompletions("git  ", 4, executableLocator, null);
+        assertEquals(new CompletionResult("git  ", 4, asList("add", "space", "remove")), result);
     }
 
     @Test
@@ -100,6 +105,9 @@ public class CompletorTest {
 
         result = completor.getCompletions("git | git", 9, executableLocator, null);
         assertEquals(new CompletionResult("git | git ", 10, Collections.<String>emptyList()), result);
+
+        result = completor.getCompletions("git a | git", 5, executableLocator, null);
+        assertEquals(new CompletionResult("git add  | git", 8, Collections.<String>emptyList()), result);
 
         result = completor.getCompletions("echo foo | git add f", 20, executableLocator, null);
         assertEquals(new CompletionResult("echo foo | git add file ", 24, Collections.<String>emptyList()), result);
@@ -132,7 +140,6 @@ public class CompletorTest {
         result = completor.getCompletions("git space \"one space\"", 21, executableLocator, null);
         assertEquals(new CompletionResult("git space \"one space\" ", 22, Collections.<String>emptyList()), result);
     }
-
 
     @Test
     public void testCompletionWithSpacesAndAppendingOfSpaceAndQuotes() {

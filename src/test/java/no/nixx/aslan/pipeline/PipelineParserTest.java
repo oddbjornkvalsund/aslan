@@ -1,9 +1,15 @@
 package no.nixx.aslan.pipeline;
 
-import no.nixx.aslan.pipeline.model.*;
+import no.nixx.aslan.pipeline.model.Argument;
+import no.nixx.aslan.pipeline.model.Command;
+import no.nixx.aslan.pipeline.model.CommandSubstitution;
+import no.nixx.aslan.pipeline.model.CompositeArgument;
+import no.nixx.aslan.pipeline.model.Literal;
+import no.nixx.aslan.pipeline.model.Pipeline;
+import no.nixx.aslan.pipeline.model.QuotedString;
+import no.nixx.aslan.pipeline.model.VariableSubstitution;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Arrays.asList;
@@ -227,6 +233,32 @@ public class PipelineParserTest {
         assertEquals(50, csArg2.getStartIndex());
         assertEquals(63, csArg2.getStopIndex());
         assertEquals("\"inner $(cs)\"", csArg2.getUnprocessedArgument());
+    }
+
+    @Test
+    public void testParseAndAddCommandProperties() {
+        final PipelineParser parser = new PipelineParser();
+        final Pipeline pipeline = parser.parseCommand("foo|bar");
+        assertEquals(2, pipeline.getCommands().size());
+
+        final Command cmd1 = pipeline.getCommands().get(0);
+        assertEquals(0, cmd1.getStartIndex());
+        assertEquals(3, cmd1.getStopIndex());
+
+        final Command cmd2 = pipeline.getCommands().get(1);
+        assertEquals(4, cmd2.getStartIndex());
+        assertEquals(7, cmd2.getStopIndex());
+
+        final Pipeline pipelineWithSpaces = parser.parseCommand(" foo | bar ");
+        assertEquals(2, pipelineWithSpaces.getCommands().size());
+
+        final Command cmdWithSpaces1 = pipelineWithSpaces.getCommands().get(0);
+        assertEquals(0, cmdWithSpaces1.getStartIndex());
+        assertEquals(5, cmdWithSpaces1.getStopIndex());
+
+        final Command cmdWithSpaces2 = pipelineWithSpaces.getCommands().get(1);
+        assertEquals(6, cmdWithSpaces2.getStartIndex());
+        assertEquals(11, cmdWithSpaces2.getStopIndex());
     }
 
     @Test(expected = ParseException.class)
