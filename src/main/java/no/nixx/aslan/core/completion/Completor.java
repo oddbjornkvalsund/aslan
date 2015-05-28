@@ -20,7 +20,6 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static no.nixx.aslan.core.utils.ListUtils.allButLastOf;
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
-import static no.nixx.aslan.core.utils.ListUtils.isFirstOf;
 import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 import static no.nixx.aslan.core.utils.StringUtils.anyContainsWhiteSpace;
 import static no.nixx.aslan.core.utils.StringUtils.containsWhiteSpace;
@@ -47,14 +46,11 @@ public class Completor {
             final String renderedArgumentToComplete = argumentToComplete.substring(tabPosition);
             final List<String> renderedPrecedingArguments = commandToComplete.getPrecedingArguments(argumentToComplete).stream().map(Argument::getRenderedText).collect(toList());
 
-            final boolean doCompleteExecutableName = isFirstOf(commandToComplete.getArguments(), argumentToComplete);
-            final String executableName = doCompleteExecutableName ? renderedArgumentToComplete : commandToComplete.getExecutableName();
-
-            if (doCompleteExecutableName) {
-                return createCompletionResult(command, argumentToComplete, executableLocator.findExecutableCandidates(executableName), true, true);
+            if (commandToComplete.isFirstArgument(argumentToComplete)) {
+                return createCompletionResult(command, argumentToComplete, executableLocator.findExecutableCandidates(renderedArgumentToComplete), true, true);
             }
 
-            final Executable executable = executableLocator.lookupExecutable(executableName);
+            final Executable executable = executableLocator.lookupExecutable(commandToComplete.getExecutableName());
             if (!(executable instanceof Completable)) {
                 return emptyCompletionResult;
             }

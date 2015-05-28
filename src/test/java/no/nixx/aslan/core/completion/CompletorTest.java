@@ -93,6 +93,12 @@ public class CompletorTest {
         result = completor.getCompletions("git add file f fileB", 14, executableLocator, executionContext);
         assertEquals(new CompletionResult("git add file file fileB", 17, asList("fileA", "fileB", "fileC")), result);
 
+        result = completor.getCompletions("foo", 0, executableLocator, executionContext);
+        assertEquals(new CompletionResult("git ", 4, asList()), result);
+
+        result = completor.getCompletions(" foo", 0, executableLocator, executionContext);
+        assertEquals(new CompletionResult("git  foo", 4, asList()), result);
+
         result = completor.getCompletions("grit", 1, executableLocator, executionContext);
         assertEquals(new CompletionResult("git ", 4, asList()), result);
 

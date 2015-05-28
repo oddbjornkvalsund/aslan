@@ -64,6 +64,19 @@ public class Command {
         return arguments.stream().filter(a -> a.spansPosition(position)).findFirst().orElse(emptyArgument);
     }
 
+    public boolean isFirstArgument(Argument argument) {
+        if(spansPosition(argument.getStartIndex()) && spansPosition(argument.getStopIndex())) {
+            if(arguments.isEmpty()) {
+                return true;
+            } else {
+                final Argument firstNonEmptyArgument = arguments.get(0);
+                return argument.getStartIndex() <= firstNonEmptyArgument.getStartIndex() && argument.getStopIndex() <= firstNonEmptyArgument.getStopIndex();
+            }
+        } else {
+            return false;
+        }
+    }
+
     // NOTE: This method does not return the executable name!
     public List<String> getRenderedArguments() {
         return allButFirstOf(arguments).stream().map(Argument::getRenderedText).collect(toList());
@@ -105,7 +118,9 @@ public class Command {
     @Override
     public String toString() {
         return "Command{" +
-                "arguments=" + arguments +
+                "identity=" + identity +
+                ", arguments=" + arguments +
+                ", properties=" + properties +
                 '}';
     }
 }
