@@ -17,6 +17,10 @@ public class KeywordCompletionSpec extends CompletionSpec {
         this.keywords = asList(checkNoNulls(keywords));
     }
 
+    public static KeywordCompletionSpec keywords(String... keywords) {
+        return new KeywordCompletionSpec(keywords);
+    }
+
     @Override
     public boolean isPartialMatch(String argument) {
         checkNotNull(argument);

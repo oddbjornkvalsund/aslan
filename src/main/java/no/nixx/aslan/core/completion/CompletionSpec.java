@@ -1,8 +1,5 @@
 package no.nixx.aslan.core.completion;
 
-import no.nixx.aslan.core.completion.specs.KeywordCompletionSpec;
-import no.nixx.aslan.core.completion.specs.OptionCompletionSpec;
-
 import java.util.List;
 
 import static java.util.Arrays.asList;
@@ -18,15 +15,6 @@ public abstract class CompletionSpec {
         for (CompletionSpec child : this.children) {
             child.setParent(this);
         }
-    }
-
-    // Factory methods
-    public static OptionCompletionSpec option(String name, CompletionSpec... children) {
-        return new OptionCompletionSpec(name, children);
-    }
-
-    public static CompletionSpec keywords(String... keywords) {
-        return new KeywordCompletionSpec(keywords);
     }
 
     public abstract boolean isPartialMatch(String argument);

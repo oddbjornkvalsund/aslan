@@ -15,6 +15,10 @@ public class OptionCompletionSpec extends CompletionSpec {
         this.name = name;
     }
 
+    public static OptionCompletionSpec option(String name, CompletionSpec... children) {
+        return new OptionCompletionSpec(name, children);
+    }
+
     @Override
     public boolean isPartialMatch(String argument) {
         return name.startsWith(argument) && !isCompleteMatch(argument);

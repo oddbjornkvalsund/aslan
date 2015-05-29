@@ -15,8 +15,8 @@ import java.util.List;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
-import static no.nixx.aslan.core.completion.CompletionSpec.keywords;
-import static no.nixx.aslan.core.completion.CompletionSpec.option;
+import static no.nixx.aslan.core.completion.specs.KeywordCompletionSpec.keywords;
+import static no.nixx.aslan.core.completion.specs.OptionCompletionSpec.option;
 import static org.junit.Assert.assertEquals;
 
 public class CompletorTest {
