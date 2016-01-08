@@ -53,20 +53,18 @@ public class AslanShell extends VBox {
     private final Background transparentBackground = new Background(new BackgroundFill(Color.TRANSPARENT, null, null));
     private final Border transparentBorder = new Border(new BorderStroke(Color.TRANSPARENT, BorderStrokeStyle.NONE, CornerRadii.EMPTY, BorderWidths.EMPTY));
 
+    private final InputBox inputBox;
     private final Label prompt;
     private final TextFieldBufferItem input;
-    private final InputBox inputBox;
+    private final VirtualFlow<BufferItem, Cell<BufferItem, Node>> buffer;
     private final ObservableList<BufferItem> bufferItems;
     private final ObservableList<BufferItem> bufferItemsWithInput;
-
-    private final VirtualFlow<BufferItem, Cell<BufferItem, Node>> buffer;
     private final ExecutorService threadPool = Executors.newFixedThreadPool(8);
     private final PipelineParser parser = new PipelineParser();
-
     private final ObservableExecutionContextFactory executionContextFactory = new ObservableExecutionContextFactory(new WorkingDirectoryImpl(System.getProperty("user.dir")));
+    private Cell<BufferItem, Node> inputBoxCell;
     private long previousKeyTimestamp = Long.MIN_VALUE;
     private KeyCode previousKeyCode = KeyCode.UNDEFINED;
-    private Cell<BufferItem, Node> inputBoxCell;
 
     public AslanShell() {
         prompt = new Label();
@@ -79,9 +77,9 @@ public class AslanShell extends VBox {
         undecorate(input);
         input.setOnKeyPressed(this::handleKeyPressed);
         runLater(input::requestFocus);
+        inputBox = new InputBox(prompt, input);
 
         bufferItems = observableArrayList();
-        inputBox = new InputBox(prompt, input);
         bufferItemsWithInput = new ObservableCompositeList<>(bufferItems, observableArrayList(inputBox));
         buffer = createVertical(bufferItemsWithInput, bufferItem -> new Cell<BufferItem, Node>() {
 
