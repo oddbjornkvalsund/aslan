@@ -3,6 +3,7 @@ package no.nixx.aslan.core;
 import no.nixx.aslan.api.Executable;
 import no.nixx.aslan.core.executables.*;
 import no.nixx.aslan.core.executables.shellutils.Cd;
+import no.nixx.aslan.core.executables.shellutils.Pwd;
 import no.nixx.aslan.core.executables.shellutils.Set;
 import no.nixx.aslan.core.executables.shellutils.Unset;
 
@@ -17,6 +18,7 @@ public class ExecutableLocatorImpl implements ExecutableLocator {
 
     {
         map.put("cd", Cd.class);
+        map.put("pwd", Pwd.class);
         map.put("ls", Ls.class);
         map.put("grep", Grep.class);
         map.put("echo", Echo.class);
