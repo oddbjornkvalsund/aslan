@@ -5,6 +5,6 @@ import javafx.scene.control.Tab;
 public class AslanTab extends Tab {
     public AslanTab(String title) {
         setText(title);
-        setContent(new AslanShell2());
+        setContent(new AslanShell());
     }
 }

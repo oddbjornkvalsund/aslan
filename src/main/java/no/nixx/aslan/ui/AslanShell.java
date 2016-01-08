@@ -48,7 +48,7 @@ import static javafx.scene.paint.Color.RED;
 import static no.nixx.aslan.core.utils.StringUtils.join;
 import static org.fxmisc.flowless.VirtualFlow.createVertical;
 
-public class AslanShell2 extends VBox {
+public class AslanShell extends VBox {
 
     private final Background transparentBackground = new Background(new BackgroundFill(Color.TRANSPARENT, null, null));
     private final Border transparentBorder = new Border(new BorderStroke(Color.TRANSPARENT, BorderStrokeStyle.NONE, CornerRadii.EMPTY, BorderWidths.EMPTY));
@@ -68,7 +68,7 @@ public class AslanShell2 extends VBox {
     private KeyCode previousKeyCode = KeyCode.UNDEFINED;
     private Cell<BufferItem, Node> inputBoxCell;
 
-    public AslanShell2() {
+    public AslanShell() {
         prompt = new Label();
         // TODO: Messy, use StringProperty for WorkingDirectory
         executionContextFactory.workingDirectoryProperty().addListener((observable, oldValue, newValue) -> {
@@ -123,7 +123,7 @@ public class AslanShell2 extends VBox {
 
         final EventHandler<KeyEvent> sceneKeyEventEventHandler = (keyEvent) -> {
             final EventTarget target = keyEvent.getTarget();
-            final Scene scene = AslanShell2.this.getScene();
+            final Scene scene = AslanShell.this.getScene();
             if (isAncestorOrScene(this, target)) {
                 final boolean isKeyPressed = KeyEvent.KEY_PRESSED.equals(keyEvent.getEventType());
                 switch (keyEvent.getCode()) {
