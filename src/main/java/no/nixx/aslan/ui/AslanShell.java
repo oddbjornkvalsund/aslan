@@ -70,7 +70,7 @@ public class AslanShell extends VBox {
 
     public AslanShell() {
         prompt = new Label();
-        // TODO: Messy, use StringProperty for WorkingDirectory
+        // TODO: Messy, re-think this whole concept
         executionContextFactory.workingDirectoryProperty().addListener((observable, oldValue, newValue) -> {
             runLater(() -> setLabelFromPath(prompt, newValue.asPath()));
         });
