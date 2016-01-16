@@ -37,6 +37,15 @@ public class ListUtils {
         return newList;
     }
 
+    @SafeVarargs
+    public static <T> List<T> concatenate(List<T>... lists) {
+        final ArrayList<T> newList = new ArrayList<>();
+        for (List<T> list : lists) {
+            newList.addAll(list);
+        }
+        return newList;
+    }
+
     public static <T> List<T> removeElement(List<T> list, T removee) {
         final List<T> newList = new ArrayList<>(list);
         if (newList.removeAll(singleton(removee))) {
