@@ -24,7 +24,7 @@ public class Cd implements ShellUtil, Completable {
         if (args.size() == 1) {
             final Path path = context.getWorkingDirectory().asPath().resolve(Paths.get(firstOf(args))).normalize(); // TODO: Put this in WorkingDirectory
             if (isDirectory(path)) {
-                context.setWorkingDirectory(new WorkingDirectoryImpl(path));
+                context.setWorkingDirectory(new WorkingDirectoryImpl(path.toAbsolutePath().normalize()));
             } else {
                 throw new IllegalArgumentException("Not a directory: " + path.toString());
             }
