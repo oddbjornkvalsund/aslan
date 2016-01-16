@@ -50,9 +50,10 @@ import static org.fxmisc.flowless.VirtualFlow.createVertical;
 
 public class AslanShell extends VBox {
 
+    // TODO: Remove before commiting
+    private static int scrollToInputInvocationCount = 0;
     private final Background transparentBackground = new Background(new BackgroundFill(Color.TRANSPARENT, null, null));
     private final Border transparentBorder = new Border(new BorderStroke(Color.TRANSPARENT, BorderStrokeStyle.NONE, CornerRadii.EMPTY, BorderWidths.EMPTY));
-
     private final InputBox inputBox;
     private final Label prompt;
     private final TextFieldBufferItem input;
@@ -131,7 +132,7 @@ public class AslanShell extends VBox {
                     case HOME:
                     case END:
                         if (isKeyPressed) {
-                            handlePageUpDownHomeEnd(buffer, keyEvent);
+                            handlePageUpDownHomeEnd(keyEvent);
                         }
                     case CONTROL:
                     case SHIFT:
@@ -167,7 +168,7 @@ public class AslanShell extends VBox {
         });
 
         bufferItems.addListener((ListChangeListener<? super BufferItem>) c -> scrollToInput());
-        input.addEventHandler(KeyEvent.KEY_PRESSED, (keyEvent) -> handlePageUpDownHomeEnd(buffer, keyEvent));
+        input.addEventHandler(KeyEvent.KEY_PRESSED, this::handlePageUpDownHomeEnd);
         input.setOnAction(this::executeCommand);
 
         VBox.setVgrow(buffer, ALWAYS);
@@ -235,27 +236,26 @@ public class AslanShell extends VBox {
         return currentTimeMillis() - previousKeyTimestamp;
     }
 
-    private void handlePageUpDownHomeEnd(VirtualFlow<?, ?> virtualFlow, KeyEvent keyEvent) {
+    private void handlePageUpDownHomeEnd(KeyEvent keyEvent) {
         switch (keyEvent.getCode()) {
             case HOME:
                 if (keyEvent.isControlDown()) {
-                    virtualFlow.scrollY(-Double.MAX_VALUE);
+                    buffer.scrollY(-Double.MAX_VALUE);
                 }
                 break;
             case END:
                 if (keyEvent.isControlDown()) {
-                    virtualFlow.scrollY(Double.MAX_VALUE);
+                    buffer.scrollY(Double.MAX_VALUE);
                 }
                 break;
             case PAGE_UP:
-                virtualFlow.scrollY(-virtualFlow.getHeight());
+                buffer.scrollY(-buffer.getHeight());
                 break;
             case PAGE_DOWN:
-                virtualFlow.scrollY(virtualFlow.getHeight());
+                buffer.scrollY(buffer.getHeight());
                 break;
         }
     }
-
 
     private void handleKeyPressed(KeyEvent event) {
         final KeyCode keyCode = event.getCode();
@@ -276,7 +276,10 @@ public class AslanShell extends VBox {
     }
 
     private void scrollToInput() {
-        runLater(() -> buffer.showAsLast(bufferItemsWithInput.indexOf(inputBox)));
+        runLater(() -> {
+            buffer.showAsLast(bufferItemsWithInput.indexOf(inputBox));
+            System.out.println("Scrolled: " + ++scrollToInputInvocationCount);
+        });
     }
 
     private void focusTextFieldAndFireKeyEvent(final TextField textField, final Scene scene, final KeyEvent keyEvent) {

@@ -1,20 +1,27 @@
 package no.nixx.aslan.ui.components;
 
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 import javafx.collections.ObservableList;
+import no.nixx.aslan.core.utils.ListUtils;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import static javafx.application.Platform.runLater;
+import static no.nixx.aslan.core.utils.ListUtils.*;
 
 public class BufferOutputStream extends ByteArrayOutputStream {
     private final ObservableList<BufferItem> list;
     private final BufferItemFactory factory;
 
-    private BufferItem currentLine;
+    private BufferItem currentItem;
 
     public BufferOutputStream(ObservableList<BufferItem> list, BufferItemFactory factory) {
         this.list = list;
         this.factory = factory;
-        this.currentLine = factory.createItem("");
-        this.list.add(this.currentLine);
+        this.currentItem = factory.createItem("");
+        this.list.add(this.currentItem);
     }
 
     @Override
@@ -27,41 +34,49 @@ public class BufferOutputStream extends ByteArrayOutputStream {
 
     @Override
     public void close() {
-        if (currentLineIsEmpty()) {
-            list.remove(currentLine);
-        }
+        runLater(() -> {
+            if (currentItemIsEmpty()) {
+                list.remove(currentItem);
+            }
+        });
     }
 
     private void addBufferItemsToList(String content) {
-        // Possible improvement: Don't do list.add(...), but collect to temporary list and do list.addAll(tmpList)
+        final BufferItem initialCurrentItem = currentItem;
+        final ArrayList<BufferItem> tmpList = new ArrayList<>();
         final StringBuilder buffer = new StringBuilder();
         for (char c : content.toCharArray()) {
             //noinspection StatementWithEmptyBody
             if (c == '\r') {
                 // Ignore for now
             } else if (c == '\n') {
-                appendToCurrentLine(buffer);
-                currentLine = factory.createItem("");
-                list.add(currentLine);
+                appendToCurrentItem(tmpList, buffer);
+                currentItem = factory.createItem("");
+                tmpList.add(currentItem);
                 buffer.setLength(0);
             } else {
                 buffer.append(c);
             }
         }
 
-        appendToCurrentLine(buffer);
+        appendToCurrentItem(tmpList, buffer);
+
+        final List<BufferItem> newList = concatenate(removeElement(list, initialCurrentItem), tmpList);
+        runLater(() -> list.setAll(newList));
     }
 
-    private void appendToCurrentLine(StringBuilder buffer) {
+    private void appendToCurrentItem(ArrayList<BufferItem> tmpList, StringBuilder buffer) {
         final String newContent = buffer.toString();
-        if (!newContent.isEmpty()) {
-            final BufferItem newCurrentLine = factory.createItem(currentLine.getText() + newContent);
-            list.set(list.indexOf(currentLine), newCurrentLine); // To trigger changelisteners on the list
-            currentLine = newCurrentLine;
+        final BufferItem newCurrentItem = factory.createItem(currentItem.getText() + newContent);
+        if (tmpList.isEmpty()) {
+            tmpList.add(newCurrentItem);
+        } else {
+            tmpList.set(tmpList.size() - 1, newCurrentItem); // To trigger changelisteners on the list
         }
+        currentItem = newCurrentItem;
     }
 
-    private boolean currentLineIsEmpty() {
-        return currentLine.getText().isEmpty();
+    private boolean currentItemIsEmpty() {
+        return currentItem.getText().isEmpty();
     }
 }
