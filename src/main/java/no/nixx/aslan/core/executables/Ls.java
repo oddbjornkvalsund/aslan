@@ -20,13 +20,15 @@ import static java.nio.file.Files.isDirectory;
 public class Ls implements Program, Completable {
     @Override
     public void run(ExecutionContext context, List<String> args) {
-        final PrintWriter pw = new PrintWriter(context.output(), true);
+        final PrintWriter pw = new PrintWriter(context.output(), false);
         final Path cwd = context.getWorkingDirectory().asPath();
         if (exists(cwd) && isDirectory(cwd)) {
             try {
                 Files.list(cwd).forEach(f -> pw.println(f.getFileName() + (isDirectory(f) ? File.separator : "")));
             } catch (IOException e) {
                 throw new RuntimeException(e);
+            } finally {
+                pw.flush();
             }
         }
     }
