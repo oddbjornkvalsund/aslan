@@ -15,7 +15,7 @@ public class BufferOutputStreamTest {
     @Test
     public void testEmptyLines() throws IOException {
         final ObservableList<BufferItem> list = FXCollections.observableArrayList();
-        final BufferOutputStream os = new BufferOutputStream(list, s -> new TextBufferItem(s, Color.BLACK));
+        final BufferOutputStream os = new BufferOutputStream(list, s -> new TextBufferItem(s, Color.BLACK), false);
 
         assertEquals(1, list.size());
 
@@ -39,7 +39,7 @@ public class BufferOutputStreamTest {
     @Test
     public void testNormal() throws IOException {
         final ObservableList<BufferItem> list = FXCollections.observableArrayList();
-        final BufferOutputStream os = new BufferOutputStream(list, s -> new TextBufferItem(s, Color.BLACK));
+        final BufferOutputStream os = new BufferOutputStream(list, s -> new TextBufferItem(s, Color.BLACK), false);
 
         assertEquals(1, list.size());
 
@@ -69,7 +69,7 @@ public class BufferOutputStreamTest {
     @Test
     public void test() throws IOException {
         final ObservableList<BufferItem> list = FXCollections.observableArrayList();
-        final BufferOutputStream os = new BufferOutputStream(list, s -> new TextBufferItem(s, Color.BLACK));
+        final BufferOutputStream os = new BufferOutputStream(list, s -> new TextBufferItem(s, Color.BLACK), false);
 
         os.write("a\nb\n".getBytes());
         os.flush();
@@ -84,7 +84,7 @@ public class BufferOutputStreamTest {
     @Test
     public void testEmpty() throws IOException {
         final ObservableList<BufferItem> list = FXCollections.observableArrayList();
-        final BufferOutputStream os = new BufferOutputStream(list, s -> new TextBufferItem(s, Color.BLACK));
+        final BufferOutputStream os = new BufferOutputStream(list, s -> new TextBufferItem(s, Color.BLACK), false);
 
         os.flush();
         assertEquals(1, list.size());

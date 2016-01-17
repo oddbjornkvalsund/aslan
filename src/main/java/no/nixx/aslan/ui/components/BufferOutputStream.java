@@ -1,25 +1,30 @@
 package no.nixx.aslan.ui.components;
 
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 import javafx.collections.ObservableList;
-import no.nixx.aslan.core.utils.ListUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import static javafx.application.Platform.runLater;
-import static no.nixx.aslan.core.utils.ListUtils.*;
+import static no.nixx.aslan.core.utils.ListUtils.concatenate;
+import static no.nixx.aslan.core.utils.ListUtils.removeElement;
 
 public class BufferOutputStream extends ByteArrayOutputStream {
     private final ObservableList<BufferItem> list;
     private final BufferItemFactory factory;
+    private final boolean modifyListOnJavaFXThread;
 
     private BufferItem currentItem;
 
     public BufferOutputStream(ObservableList<BufferItem> list, BufferItemFactory factory) {
+        this(list, factory, true);
+    }
+
+    public BufferOutputStream(ObservableList<BufferItem> list, BufferItemFactory factory, boolean modifyListOnJavaFXThread) {
         this.list = list;
         this.factory = factory;
+        this.modifyListOnJavaFXThread = modifyListOnJavaFXThread;
         this.currentItem = factory.createItem("");
         this.list.add(this.currentItem);
     }
@@ -27,53 +32,69 @@ public class BufferOutputStream extends ByteArrayOutputStream {
     @Override
     public void flush() {
         if (count > 0) {
-            addBufferItemsToList(toString());
+            decomposeToBufferItemsAndAddToList(toString());
             reset();
         }
     }
 
     @Override
     public void close() {
-        runLater(() -> {
-            if (currentItemIsEmpty()) {
-                list.remove(currentItem);
-            }
-        });
+        if (modifyListOnJavaFXThread) {
+            runLater(this::removeCurrentItemIfEmpty);
+        } else {
+            removeCurrentItemIfEmpty();
+        }
     }
 
-    private void addBufferItemsToList(String content) {
+    @SuppressWarnings("StatementWithEmptyBody")
+    private void decomposeToBufferItemsAndAddToList(String content) {
         final BufferItem initialCurrentItem = currentItem;
-        final ArrayList<BufferItem> tmpList = new ArrayList<>();
+
+        final ArrayList<BufferItem> newItems = new ArrayList<>();
+        newItems.add(currentItem);
+
         final StringBuilder buffer = new StringBuilder();
         for (char c : content.toCharArray()) {
-            //noinspection StatementWithEmptyBody
-            if (c == '\r') {
+            if (c == '\b') {
+                final String currentText = currentItem.getText();
+                final String newText = currentText.isEmpty() ? "" : currentText.substring(0, currentText.length() - 1);
+                replaceCurrentItem(factory.createItem(newText), newItems);
+            } else if (c == '\r') {
                 // Ignore for now
             } else if (c == '\n') {
-                appendToCurrentItem(tmpList, buffer);
+                appendToCurrentItem(buffer.toString(), newItems);
                 currentItem = factory.createItem("");
-                tmpList.add(currentItem);
+                newItems.add(currentItem);
                 buffer.setLength(0);
             } else {
                 buffer.append(c);
             }
         }
 
-        appendToCurrentItem(tmpList, buffer);
+        appendToCurrentItem(buffer.toString(), newItems);
 
-        final List<BufferItem> newList = concatenate(removeElement(list, initialCurrentItem), tmpList);
-        runLater(() -> list.setAll(newList));
+        final List<BufferItem> newList = concatenate(removeElement(list, initialCurrentItem), newItems);
+        if (modifyListOnJavaFXThread) {
+            runLater(() -> list.setAll(newList));
+        } else {
+            list.setAll(newList);
+        }
     }
 
-    private void appendToCurrentItem(ArrayList<BufferItem> tmpList, StringBuilder buffer) {
-        final String newContent = buffer.toString();
-        final BufferItem newCurrentItem = factory.createItem(currentItem.getText() + newContent);
-        if (tmpList.isEmpty()) {
-            tmpList.add(newCurrentItem);
-        } else {
-            tmpList.set(tmpList.size() - 1, newCurrentItem); // To trigger changelisteners on the list
-        }
+    private void appendToCurrentItem(String text, ArrayList<BufferItem> bufferItems) {
+        final BufferItem newCurrentItem = factory.createItem(currentItem.getText() + text);
+        replaceCurrentItem(newCurrentItem, bufferItems);
+    }
+
+    private void replaceCurrentItem(BufferItem newCurrentItem, ArrayList<BufferItem> bufferItems) {
+        bufferItems.replaceAll(item -> (item == currentItem) ? newCurrentItem : item);
         currentItem = newCurrentItem;
+    }
+
+    private void removeCurrentItemIfEmpty() {
+        if (currentItemIsEmpty()) {
+            list.remove(currentItem);
+        }
     }
 
     private boolean currentItemIsEmpty() {
