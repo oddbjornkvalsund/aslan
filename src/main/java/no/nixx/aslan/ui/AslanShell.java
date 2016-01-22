@@ -14,7 +14,16 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.*;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.Border;
+import javafx.scene.layout.BorderStroke;
+import javafx.scene.layout.BorderStrokeStyle;
+import javafx.scene.layout.BorderWidths;
+import javafx.scene.layout.CornerRadii;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import no.nixx.aslan.core.ExecutableLocatorImpl;
@@ -25,11 +34,16 @@ import no.nixx.aslan.core.completion.Completor;
 import no.nixx.aslan.pipeline.ParseException;
 import no.nixx.aslan.pipeline.PipelineParser;
 import no.nixx.aslan.pipeline.model.Pipeline;
-import no.nixx.aslan.ui.components.*;
+import no.nixx.aslan.ui.components.BufferItem;
+import no.nixx.aslan.ui.components.BufferOutputStream;
+import no.nixx.aslan.ui.components.ObservableCompositeList;
+import no.nixx.aslan.ui.components.TextBufferItem;
+import no.nixx.aslan.ui.components.TextFieldBufferItem;
 import org.fxmisc.flowless.Cell;
 import org.fxmisc.flowless.VirtualFlow;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -210,6 +224,15 @@ public class AslanShell extends VBox {
             errPrintWriter.println(exception.getMessage());
             errPrintWriter.flush();
             throw new RuntimeException(exception);
+        } finally {
+            try {
+                out.flush();
+                out.close();
+                err.flush();
+                err.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -306,6 +329,7 @@ public class AslanShell extends VBox {
         region.setPadding(Insets.EMPTY);
     }
 
+    @SuppressWarnings("SimplifiableIfStatement")
     private boolean isAncestorOrScene(Node node, EventTarget target) {
         if (node == null || node.equals(node.getParent())) {
             return false;
