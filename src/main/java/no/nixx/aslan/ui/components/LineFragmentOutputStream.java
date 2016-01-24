@@ -4,39 +4,39 @@ import javafx.collections.ObservableList;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import static java.util.Collections.singletonList;
 import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 
-public class TextFlowOutputStream<Line, Fragment> extends ByteArrayOutputStream {
+public class LineFragmentOutputStream<Line, Fragment> extends ByteArrayOutputStream {
 
     private final ObservableList<Line> list;
     private final Supplier<Line> lineFactory;
     private final Function<String, Fragment> fragmentFactory;
     private final Predicate<Line> lineIsEmptyPredicate;
     private final Predicate<Fragment> fragmentIsEmptyPredicate;
-    private final BiPredicate<Line, Fragment> lineContainsFragmentPredicate;
     private final BiPredicate<Line, Fragment> addFragmentToLinePredicate;
-    private final Function<Line, Boolean> addLineToListFunction;
-    private final Function<Line, Boolean> removeLineFromListFunction;
+    private final Predicate<List<Line>> addLinesToListFunction;
+    private final Predicate<Line> removeLineFromListFunction;
 
-    public TextFlowOutputStream(ObservableList<Line> list, Supplier<Line> lineFactory, Function<String, Fragment> fragmentFactory, Predicate<Line> lineIsEmptyPredicate, Predicate<Fragment> fragmentIsEmptyPredicate, BiPredicate<Line, Fragment> lineContainsFragmentPredicate, BiPredicate<Line, Fragment> addFragmentToLinePredicate, Function<Line, Boolean> addLineToListFunction, Function<Line, Boolean> removeLineFromListFunction) {
+    public LineFragmentOutputStream(ObservableList<Line> list, Supplier<Line> lineFactory, Function<String, Fragment> fragmentFactory, Predicate<Line> lineIsEmptyPredicate, Predicate<Fragment> fragmentIsEmptyPredicate, BiPredicate<Line, Fragment> addFragmentToLinePredicate, Predicate<Line> removeLineFromListFunction, Predicate<List<Line>> addLinesToListFunction) {
         this.list = list;
         this.lineFactory = lineFactory;
         this.fragmentFactory = fragmentFactory;
         this.lineIsEmptyPredicate = lineIsEmptyPredicate;
         this.fragmentIsEmptyPredicate = fragmentIsEmptyPredicate;
-        this.lineContainsFragmentPredicate = lineContainsFragmentPredicate;
         this.addFragmentToLinePredicate = addFragmentToLinePredicate;
-        this.addLineToListFunction = addLineToListFunction;
+        this.addLinesToListFunction = addLinesToListFunction;
         this.removeLineFromListFunction = removeLineFromListFunction;
 
         if (list.isEmpty()) {
-            appendLineToList(createNewLine());
+            addLinesToList(singletonList(createNewLine()));
         }
     }
 
@@ -51,7 +51,8 @@ public class TextFlowOutputStream<Line, Fragment> extends ByteArrayOutputStream 
 
     @Override
     public void flush() throws IOException {
-        // TODO: This method should only cause one list change to the ObservableList
+        final List<Line> newLines = new ArrayList<>();
+        Line currentLine = lastOf(list);
 
         if (count > 0) {
             final String content = toString();
@@ -60,9 +61,13 @@ public class TextFlowOutputStream<Line, Fragment> extends ByteArrayOutputStream 
                 if (c == '\n') {
                     final Fragment fragment = createNewFragment(buffer.toString());
                     if (!fragmentIsEmpty(fragment)) {
-                        appendFragmentToLastLineOfList(fragment);
+                        addFragmentToLine(fragment, currentLine);
                     }
-                    appendLineToList(createNewLine());
+
+                    final Line newLine = createNewLine();
+                    newLines.add(newLine);
+                    currentLine = newLine;
+
                     buffer.setLength(0);
                 } else {
                     buffer.append(c);
@@ -71,8 +76,10 @@ public class TextFlowOutputStream<Line, Fragment> extends ByteArrayOutputStream 
 
             final Fragment fragment = createNewFragment(buffer.toString());
             if (!fragmentIsEmpty(fragment)) {
-                appendFragmentToLastLineOfList(fragment);
+                addFragmentToLine(fragment, currentLine);
             }
+
+            addLinesToList(newLines);
 
             reset();
         }
@@ -90,20 +97,16 @@ public class TextFlowOutputStream<Line, Fragment> extends ByteArrayOutputStream 
         }
     }
 
-    private Boolean appendLineToList(Line line) {
-        return addLineToListFunction.apply(line);
+    private boolean addFragmentToLine(Fragment fragment, Line currentLine) {
+        return addFragmentToLinePredicate.test(currentLine, fragment);
     }
 
-    private boolean appendFragmentToLastLineOfList(Fragment fragment) {
-        return addFragmentToLinePredicate.test(lastOf(list), fragment);
+    private boolean addLinesToList(List<Line> newLines) {
+        return addLinesToListFunction.test(newLines);
     }
 
-    private boolean appendFragmentToLastLineOfList(Fragment fragment, List<Line> list) {
-        return addFragmentToLinePredicate.test(lastOf(list), fragment);
-    }
-
-    private Boolean removeLineFromList(Line lastLine) {
-        return removeLineFromListFunction.apply(lastLine);
+    private boolean removeLineFromList(Line lastLine) {
+        return removeLineFromListFunction.test(lastLine);
     }
 
     private boolean lineIsEmpty(Line lastLine) {
@@ -121,5 +124,4 @@ public class TextFlowOutputStream<Line, Fragment> extends ByteArrayOutputStream 
     private Fragment createNewFragment(String text) {
         return fragmentFactory.apply(text);
     }
-
 }

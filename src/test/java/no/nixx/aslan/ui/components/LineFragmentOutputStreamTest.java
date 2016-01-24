@@ -12,12 +12,12 @@ import static java.util.Collections.singletonList;
 import static javafx.collections.FXCollections.observableArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TextFlowOutputStreamTest {
+public class LineFragmentOutputStreamTest {
 
     @Test
     public void testInitial() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final TextFlowOutputStream<Line, LineFragment> os = createTestOutputStream(list);
+        final LineFragmentOutputStream<Line, LineFragment> os = createTestOutputStream(list);
         assertThat(list.size()).isEqualTo(1);
         os.flush();
         assertThat(list.size()).isEqualTo(1);
@@ -28,7 +28,7 @@ public class TextFlowOutputStreamTest {
     @Test
     public void testSimpleWrite() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final TextFlowOutputStream<Line, LineFragment> os = createTestOutputStream(list);
+        final LineFragmentOutputStream<Line, LineFragment> os = createTestOutputStream(list);
 
         os.write("Hello");
         assertThat(list).isEqualTo(singletonList(new Line()));
@@ -41,7 +41,7 @@ public class TextFlowOutputStreamTest {
     @Test
     public void testManyWritesToSameLine() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final TextFlowOutputStream<Line, LineFragment> os = createTestOutputStream(list);
+        final LineFragmentOutputStream<Line, LineFragment> os = createTestOutputStream(list);
 
         os.write("Hello");
         assertThat(list).isEqualTo(singletonList(new Line()));
@@ -56,7 +56,7 @@ public class TextFlowOutputStreamTest {
     @Test
     public void testNewline() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final TextFlowOutputStream<Line, LineFragment> os = createTestOutputStream(list);
+        final LineFragmentOutputStream<Line, LineFragment> os = createTestOutputStream(list);
 
         os.write("Hello");
         assertThat(list).isEqualTo(singletonList(new Line()));
@@ -69,7 +69,7 @@ public class TextFlowOutputStreamTest {
     @Test
     public void testWriteRemovesEmptyLastLine() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final TextFlowOutputStream<Line, LineFragment> os = createTestOutputStream(list);
+        final LineFragmentOutputStream<Line, LineFragment> os = createTestOutputStream(list);
 
         os.write("Hello\n");
         assertThat(list).isEqualTo(singletonList(new Line()));
@@ -82,8 +82,8 @@ public class TextFlowOutputStreamTest {
     @Test
     public void testManyStreamsLinkedToOneList() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final TextFlowOutputStream<Line, LineFragment> os1 = createTestOutputStream(list);
-        final TextFlowOutputStream<Line, LineFragment> os2 = createTestOutputStream(list);
+        final LineFragmentOutputStream<Line, LineFragment> os1 = createTestOutputStream(list);
+        final LineFragmentOutputStream<Line, LineFragment> os2 = createTestOutputStream(list);
 
         os1.write("Foo");
         assertThat(list).isEqualTo(singletonList(new Line()));
@@ -150,7 +150,7 @@ public class TextFlowOutputStreamTest {
         }
     }
 
-    private TextFlowOutputStream<Line, LineFragment> createTestOutputStream(ObservableList<Line> list) {
-        return new TextFlowOutputStream<>(list, Line::new, LineFragment::new, Line::isEmpty, LineFragment::isEmpty, Line::contains, Line::add, list::add, list::remove);
+    private LineFragmentOutputStream<Line, LineFragment> createTestOutputStream(ObservableList<Line> list) {
+        return new LineFragmentOutputStream<>(list, Line::new, LineFragment::new, Line::isEmpty, LineFragment::isEmpty, Line::add, list::remove, list::addAll);
     }
 }
