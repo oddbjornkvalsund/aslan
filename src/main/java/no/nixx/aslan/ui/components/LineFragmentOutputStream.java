@@ -1,39 +1,31 @@
 package no.nixx.aslan.ui.components;
 
-import javafx.collections.ObservableList;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiPredicate;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 import static java.util.Collections.singletonList;
 import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 
 public class LineFragmentOutputStream<Line, Fragment> extends ByteArrayOutputStream {
 
-    private final ObservableList<Line> list;
-    private final Supplier<Line> lineFactory;
-    private final Function<String, Fragment> fragmentFactory;
-    private final Predicate<Line> lineIsEmptyPredicate;
-    private final Predicate<Fragment> fragmentIsEmptyPredicate;
-    private final BiPredicate<Line, Fragment> addFragmentToLinePredicate;
-    private final Predicate<List<Line>> addLinesToListFunction;
-    private final Predicate<Line> removeLineFromListFunction;
+    private final List<Line> list;
+    private final Adapter<Line, Fragment> adapter;
 
-    public LineFragmentOutputStream(ObservableList<Line> list, Supplier<Line> lineFactory, Function<String, Fragment> fragmentFactory, Predicate<Line> lineIsEmptyPredicate, Predicate<Fragment> fragmentIsEmptyPredicate, BiPredicate<Line, Fragment> addFragmentToLinePredicate, Predicate<Line> removeLineFromListFunction, Predicate<List<Line>> addLinesToListFunction) {
+    public interface Adapter<Line, Fragment> {
+        Line createLine();
+        Fragment createFragment(String text);
+        boolean lineIsEmpty(Line line);
+        boolean fragmentIsEmpty(Fragment fragment);
+        void addFragmentToLine(Fragment fragment, Line line);
+        void addLinesToList(List<Line> lines);
+        void removeLineFromList(Line line);
+    }
+
+    public LineFragmentOutputStream(List<Line> list, Adapter<Line, Fragment> adapter) {
         this.list = list;
-        this.lineFactory = lineFactory;
-        this.fragmentFactory = fragmentFactory;
-        this.lineIsEmptyPredicate = lineIsEmptyPredicate;
-        this.fragmentIsEmptyPredicate = fragmentIsEmptyPredicate;
-        this.addFragmentToLinePredicate = addFragmentToLinePredicate;
-        this.addLinesToListFunction = addLinesToListFunction;
-        this.removeLineFromListFunction = removeLineFromListFunction;
+        this.adapter = adapter;
 
         if (list.isEmpty()) {
             addLinesToList(singletonList(createNewLine()));
@@ -97,31 +89,31 @@ public class LineFragmentOutputStream<Line, Fragment> extends ByteArrayOutputStr
         }
     }
 
-    private boolean addFragmentToLine(Fragment fragment, Line currentLine) {
-        return addFragmentToLinePredicate.test(currentLine, fragment);
+    private void addFragmentToLine(Fragment fragment, Line line) {
+        adapter.addFragmentToLine(fragment, line);
     }
 
-    private boolean addLinesToList(List<Line> newLines) {
-        return addLinesToListFunction.test(newLines);
+    private void addLinesToList(List<Line> lines) {
+        adapter.addLinesToList(lines);
     }
 
-    private boolean removeLineFromList(Line lastLine) {
-        return removeLineFromListFunction.test(lastLine);
+    private void removeLineFromList(Line line) {
+        adapter.removeLineFromList(line);
     }
 
-    private boolean lineIsEmpty(Line lastLine) {
-        return lineIsEmptyPredicate.test(lastLine);
+    private boolean lineIsEmpty(Line line) {
+        return adapter.lineIsEmpty(line);
     }
 
     private boolean fragmentIsEmpty(Fragment fragment) {
-        return fragmentIsEmptyPredicate.test(fragment);
+        return adapter.fragmentIsEmpty(fragment);
     }
 
     private Line createNewLine() {
-        return lineFactory.get();
+        return adapter.createLine();
     }
 
     private Fragment createNewFragment(String text) {
-        return fragmentFactory.apply(text);
+        return adapter.createFragment(text);
     }
 }
