@@ -68,6 +68,16 @@ public class LineFragmentOutputStreamTest {
     }
 
     @Test
+    public void testCarriageReturn() throws IOException {
+        final ObservableList<Line> list = observableArrayList();
+        final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
+
+        os.write("Hello\r\n");
+        os.flush();
+        assertThat(list).isEqualTo(asList(new Line(new Fragment("Hello")), new Line()));
+    }
+
+    @Test
     public void testWriteRemovesEmptyLastLine() throws IOException {
         final ObservableList<Line> list = observableArrayList();
         final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
@@ -98,6 +108,10 @@ public class LineFragmentOutputStreamTest {
         assertThat(list).isEqualTo(singletonList(new Line(new Fragment("Foo"), new Fragment("Bar"))));
         os2.close();
         assertThat(list).isEqualTo(singletonList(new Line(new Fragment("Foo"), new Fragment("Bar"))));
+    }
+
+    private LineFragmentOutputStream<Line, Fragment> createTestOutputStream(ObservableList<Line> list) {
+        return new LineFragmentOutputStream<>(list, new TestAdapter(list));
     }
 
     private static class Line extends ArrayList<Fragment> {
@@ -178,9 +192,5 @@ public class LineFragmentOutputStreamTest {
         public void removeLineFromList(Line line) {
             list.remove(line);
         }
-    }
-
-    private LineFragmentOutputStream<Line, Fragment> createTestOutputStream(ObservableList<Line> list) {
-        return new LineFragmentOutputStream<>(list, new TestAdapter(list));
     }
 }

@@ -13,16 +13,6 @@ public class LineFragmentOutputStream<Line, Fragment> extends ByteArrayOutputStr
     private final List<Line> list;
     private final Adapter<Line, Fragment> adapter;
 
-    public interface Adapter<Line, Fragment> {
-        Line createLine();
-        Fragment createFragment(String text);
-        boolean lineIsEmpty(Line line);
-        boolean fragmentIsEmpty(Fragment fragment);
-        void addFragmentToLine(Fragment fragment, Line line);
-        void addLinesToList(List<Line> lines);
-        void removeLineFromList(Line line);
-    }
-
     public LineFragmentOutputStream(List<Line> list, Adapter<Line, Fragment> adapter) {
         this.list = list;
         this.adapter = adapter;
@@ -50,7 +40,9 @@ public class LineFragmentOutputStream<Line, Fragment> extends ByteArrayOutputStr
             final String content = toString();
             final StringBuilder buffer = new StringBuilder();
             for (char c : content.toCharArray()) {
-                if (c == '\n') {
+                if (c == '\r') {
+                    // Skip for now
+                } else if (c == '\n') {
                     final Fragment fragment = createNewFragment(buffer.toString());
                     if (!fragmentIsEmpty(fragment)) {
                         addFragmentToLine(fragment, currentLine);
@@ -115,5 +107,21 @@ public class LineFragmentOutputStream<Line, Fragment> extends ByteArrayOutputStr
 
     private Fragment createNewFragment(String text) {
         return adapter.createFragment(text);
+    }
+
+    public interface Adapter<Line, Fragment> {
+        Line createLine();
+
+        Fragment createFragment(String text);
+
+        boolean lineIsEmpty(Line line);
+
+        boolean fragmentIsEmpty(Fragment fragment);
+
+        void addFragmentToLine(Fragment fragment, Line line);
+
+        void addLinesToList(List<Line> lines);
+
+        void removeLineFromList(Line line);
     }
 }

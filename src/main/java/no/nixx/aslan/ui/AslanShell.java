@@ -2,6 +2,7 @@ package no.nixx.aslan.ui;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -35,10 +36,9 @@ import no.nixx.aslan.pipeline.ParseException;
 import no.nixx.aslan.pipeline.PipelineParser;
 import no.nixx.aslan.pipeline.model.Pipeline;
 import no.nixx.aslan.ui.components.BufferItem;
-import no.nixx.aslan.ui.components.BufferOutputStream;
+import no.nixx.aslan.ui.components.LineFragmentOutputStream;
 import no.nixx.aslan.ui.components.ObservableCompositeList;
-import no.nixx.aslan.ui.components.TextBufferItem;
-import no.nixx.aslan.ui.components.TextFieldBufferItem;
+import no.nixx.aslan.ui.components.TextFlowBufferItem;
 import org.fxmisc.flowless.Cell;
 import org.fxmisc.flowless.VirtualFlow;
 
@@ -48,6 +48,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -70,9 +71,9 @@ public class AslanShell extends VBox {
     private final Border transparentBorder = new Border(new BorderStroke(Color.TRANSPARENT, BorderStrokeStyle.NONE, CornerRadii.EMPTY, BorderWidths.EMPTY));
     private final InputBox inputBox;
     private final Label prompt;
-    private final TextFieldBufferItem input;
+    private final TextField input;
     private final VirtualFlow<BufferItem, Cell<BufferItem, Node>> buffer;
-    private final ObservableList<BufferItem> bufferItems;
+    private final ObservableList<TextFlowBufferItem> bufferItems;
     private final ObservableList<BufferItem> bufferItemsWithInput;
     private final ExecutorService threadPool = Executors.newFixedThreadPool(8);
     private final PipelineParser parser = new PipelineParser();
@@ -82,6 +83,7 @@ public class AslanShell extends VBox {
     private KeyCode previousKeyCode = KeyCode.UNDEFINED;
 
     public AslanShell() {
+        // Prompt
         prompt = new Label();
         // TODO: Messy, re-think this whole concept
         runLater(() -> setLabelFromPath(prompt, executionContextFactory.workingDirectoryProperty().get().asPath()));
@@ -89,18 +91,19 @@ public class AslanShell extends VBox {
             runLater(() -> setLabelFromPath(prompt, newValue.asPath()));
         });
 
-        input = new TextFieldBufferItem();
+        // Input
+        input = new TextField();
         undecorate(input);
         input.setOnKeyPressed(this::handleKeyPressed);
         runLater(input::requestFocus);
         inputBox = new InputBox(prompt, input);
 
+        // Buffer
         bufferItems = observableArrayList();
-        bufferItemsWithInput = new ObservableCompositeList<>(bufferItems, observableArrayList(inputBox));
+        bufferItemsWithInput = new ObservableCompositeList<>((ObservableList) bufferItems, FXCollections.<BufferItem>observableArrayList(inputBox));
         buffer = createVertical(bufferItemsWithInput, bufferItem -> new Cell<BufferItem, Node>() {
 
             private Node node;
-            private Text text = new Text();
 
             {
                 updateItem(bufferItem);
@@ -121,11 +124,12 @@ public class AslanShell extends VBox {
                 if (item == inputBox) {
                     node = inputBox;
                     inputBoxCell = this;
+                } else if (item instanceof TextFlowBufferItem) {
+                    // Keeping all the items in the list as TextFlow+Text seems to be heavy on memory
+                    // Consider storing the items as List<String>+String and reusing TextFlow+Text from a object pool
+                    node = (TextFlowBufferItem) item;
                 } else {
-                    final TextBufferItem textBufferItem = (TextBufferItem) item;
-                    text.setText(textBufferItem.text);
-                    text.setFill(textBufferItem.textColor);
-                    node = text;
+                    throw new RuntimeException("WTF?");
                 }
             }
 
@@ -207,12 +211,12 @@ public class AslanShell extends VBox {
             throw new RuntimeException(parseException);
         }
 
-        bufferItems.add(new TextBufferItem(prompt.getText() + command, BLACK));
+        addPromptAndCommandToBuffer(command);
         input.setText("");
 
         final InputStream in = new ByteArrayInputStream(new byte[0]);
-        final OutputStream out = new BufferOutputStream(bufferItems, (text) -> new TextBufferItem(text, BLACK));
-        final OutputStream err = new BufferOutputStream(bufferItems, (text) -> new TextBufferItem(text, RED));
+        final OutputStream out = new LineFragmentOutputStream<>(bufferItems, new TextFlowLineFragmentAdapter(bufferItems, BLACK));
+        final OutputStream err = new LineFragmentOutputStream<>(bufferItems, new TextFlowLineFragmentAdapter(bufferItems, RED));
 
         final PipelineExecutorImpl pipelineExecutor = new PipelineExecutorImpl(threadPool, new ExecutableLocatorImpl(), executionContextFactory, in, out, err);
 
@@ -236,6 +240,13 @@ public class AslanShell extends VBox {
         }
     }
 
+    private void addPromptAndCommandToBuffer(String command) {
+        final Text commandText = new Text(prompt.getText() + command);
+        commandText.setFill(BLACK);
+        bufferItems.add(new TextFlowBufferItem(commandText));
+        bufferItems.add(new TextFlowBufferItem());
+    }
+
     private void tabComplete() {
         final String command = input.getText();
         final int tabPosition = input.getCaretPosition();
@@ -244,7 +255,7 @@ public class AslanShell extends VBox {
         final CompletionResult result = completor.getCompletions(command, tabPosition, new ExecutableLocatorImpl(), executionContextFactory.createExecutionContext());
 
         if (result.hasCompletionCandidates() && isDoubleTab()) {
-            bufferItems.add(new TextBufferItem(join(result.completionCandidates, " "), BLACK));
+            bufferItems.add(new TextFlowBufferItem(new Text(join(result.completionCandidates, " ")))); // TODO: Manglar farge
         }
 
         input.setText(result.text);
@@ -360,5 +371,53 @@ class InputBox extends HBox implements BufferItem {
     @Override
     public String getText() {
         return input.getText();
+    }
+}
+
+// TODO: Extract to standalone class
+class TextFlowLineFragmentAdapter implements LineFragmentOutputStream.Adapter<TextFlowBufferItem, Text> {
+    private final List<TextFlowBufferItem> list;
+    private final Color color;
+
+    public TextFlowLineFragmentAdapter(List<TextFlowBufferItem> list, Color color) {
+        this.list = list;
+        this.color = color;
+    }
+
+    @Override
+    public TextFlowBufferItem createLine() {
+        return new TextFlowBufferItem();
+    }
+
+    @Override
+    public Text createFragment(String content) {
+        final Text text = new Text(content);
+        text.setFill(color);
+        return text;
+    }
+
+    @Override
+    public boolean lineIsEmpty(TextFlowBufferItem textFlow) {
+        return textFlow.getChildren().isEmpty();
+    }
+
+    @Override
+    public boolean fragmentIsEmpty(Text text) {
+        return text.getText().isEmpty();
+    }
+
+    @Override
+    public void addFragmentToLine(Text text, TextFlowBufferItem textFlow) {
+        runLater(() -> textFlow.getChildren().add(text));
+    }
+
+    @Override
+    public void addLinesToList(List<TextFlowBufferItem> textFlows) {
+        runLater(() -> list.addAll(textFlows));
+    }
+
+    @Override
+    public void removeLineFromList(TextFlowBufferItem textFlow) {
+        runLater(() -> list.remove(textFlow));
     }
 }
