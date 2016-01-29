@@ -36,12 +36,12 @@ import no.nixx.aslan.core.completion.Completor;
 import no.nixx.aslan.pipeline.ParseException;
 import no.nixx.aslan.pipeline.PipelineParser;
 import no.nixx.aslan.pipeline.model.Pipeline;
-import no.nixx.aslan.ui.components.BufferItem;
-import no.nixx.aslan.ui.components.Fragment;
-import no.nixx.aslan.ui.components.Line;
-import no.nixx.aslan.ui.components.LineFragmentAdapter;
-import no.nixx.aslan.ui.components.LineFragmentOutputStream;
-import no.nixx.aslan.ui.components.ObservableCompositeList;
+import no.nixx.aslan.ui.component.linefragment.BufferItem;
+import no.nixx.aslan.ui.component.linefragment.Fragment;
+import no.nixx.aslan.ui.component.linefragment.Line;
+import no.nixx.aslan.ui.component.linefragment.LineFragmentAdapter;
+import no.nixx.aslan.ui.component.linefragment.LineFragmentOutputStream;
+import no.nixx.aslan.ui.component.ObservableCompositeList;
 import org.fxmisc.flowless.Cell;
 import org.fxmisc.flowless.VirtualFlow;
 

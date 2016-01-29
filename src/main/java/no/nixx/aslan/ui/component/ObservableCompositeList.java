@@ -1,4 +1,4 @@
-package no.nixx.aslan.ui.components;
+package no.nixx.aslan.ui.component;
 
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;

@@ -1,4 +1,4 @@
-package no.nixx.aslan.ui.components;
+package no.nixx.aslan.ui.component.linefragment;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
