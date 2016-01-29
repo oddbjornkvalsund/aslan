@@ -11,8 +11,6 @@ import no.nixx.aslan.pipeline.model.Literal;
 import no.nixx.aslan.pipeline.model.Pipeline;
 import no.nixx.aslan.pipeline.model.QuotedString;
 import no.nixx.aslan.pipeline.model.VariableSubstitution;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,8 +29,6 @@ import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 import static no.nixx.aslan.core.utils.StringUtils.removeTrailingNewlines;
 
 public class PipelineExecutorImpl implements PipelineExecutor {
-
-    final Logger logger = LoggerFactory.getLogger(PipelineExecutorImpl.class);
 
     final ExecutorService threadPool;
     final ExecutableLocator executableLocator;
@@ -212,7 +208,6 @@ public class PipelineExecutorImpl implements PipelineExecutor {
                     }
                 } catch (Throwable t) {
                     // TODO: Direct logging output to logfile
-                    logger.error(t.getMessage(), t);
                     defaultErrorStream.println(executableName + ": " + t.getMessage());
                 } finally {
                     try {
