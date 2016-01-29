@@ -221,8 +221,8 @@ public class AslanShell extends VBox {
         input.setText("");
 
         final InputStream in = new ByteArrayInputStream(new byte[0]);
-        final OutputStream out = new LineFragmentOutputStream<>(bufferItems, new LineFragmentAdapter(bufferItems, BLACK));
-        final OutputStream err = new LineFragmentOutputStream<>(bufferItems, new LineFragmentAdapter(bufferItems, RED));
+        final OutputStream out = new LineFragmentOutputStream(bufferItems, new LineFragmentAdapter(bufferItems, BLACK));
+        final OutputStream err = new LineFragmentOutputStream(bufferItems, new LineFragmentAdapter(bufferItems, RED));
 
         final PipelineExecutorImpl pipelineExecutor = new PipelineExecutorImpl(threadPool, new ExecutableLocatorImpl(), executionContextFactory, in, out, err);
 

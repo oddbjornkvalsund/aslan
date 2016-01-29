@@ -8,12 +8,12 @@ import java.util.List;
 import static java.util.Collections.singletonList;
 import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 
-public class LineFragmentOutputStream<Line, Fragment> extends ByteArrayOutputStream {
+public class LineFragmentOutputStream extends ByteArrayOutputStream {
 
     private final List<Line> list;
-    private final Adapter<Line, Fragment> adapter;
+    private final Adapter adapter;
 
-    public LineFragmentOutputStream(List<Line> list, Adapter<Line, Fragment> adapter) {
+    public LineFragmentOutputStream(List<Line> list, Adapter adapter) {
         this.list = list;
         this.adapter = adapter;
 
@@ -100,14 +100,24 @@ public class LineFragmentOutputStream<Line, Fragment> extends ByteArrayOutputStr
         return adapter.createFragment(text);
     }
 
-    public interface Adapter<Line, Fragment> {
-        Line createLine();
+    // This adapter allows the list to be manipulated synchronously or asynchronously
 
-        Fragment createFragment(String text);
+    public interface Adapter {
+        default Line createLine() {
+            return new Line();
+        }
 
-        boolean lineIsEmpty(Line line);
+        default Fragment createFragment(String text) {
+            return new Fragment(text);
+        }
 
-        boolean fragmentIsEmpty(Fragment fragment);
+        default boolean lineIsEmpty(Line line) {
+            return line.isEmpty();
+        }
+
+        default boolean fragmentIsEmpty(Fragment fragment) {
+            return fragment.getText().isEmpty();
+        }
 
         void addFragmentToLine(Fragment fragment, Line line);
 

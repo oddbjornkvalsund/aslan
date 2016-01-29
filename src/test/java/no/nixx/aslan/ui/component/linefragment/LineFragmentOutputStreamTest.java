@@ -17,7 +17,7 @@ public class LineFragmentOutputStreamTest {
     @Test
     public void testInitial() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
+        final LineFragmentOutputStream os = createTestOutputStream(list);
         assertThat(list).isEqualTo(singletonList(new Line()));
         os.flush();
         assertThat(list).isEqualTo(singletonList(new Line()));
@@ -28,7 +28,7 @@ public class LineFragmentOutputStreamTest {
     @Test
     public void testSimpleWrite() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
+        final LineFragmentOutputStream os = createTestOutputStream(list);
 
         write(os, "Hello");
         assertThat(list).isEqualTo(singletonList(new Line()));
@@ -41,7 +41,7 @@ public class LineFragmentOutputStreamTest {
     @Test
     public void testManyWritesToSameLine() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
+        final LineFragmentOutputStream os = createTestOutputStream(list);
 
         write(os, "Hello");
         assertThat(list).isEqualTo(singletonList(new Line()));
@@ -56,7 +56,7 @@ public class LineFragmentOutputStreamTest {
     @Test
     public void testNewline() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
+        final LineFragmentOutputStream os = createTestOutputStream(list);
 
         write(os, "Hello");
         assertThat(list).isEqualTo(singletonList(new Line()));
@@ -69,8 +69,7 @@ public class LineFragmentOutputStreamTest {
     @Test
     public void testCarriageReturn() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
-
+        final LineFragmentOutputStream os = createTestOutputStream(list);
 
         write(os, "Hello\r\n");
         os.flush();
@@ -80,7 +79,7 @@ public class LineFragmentOutputStreamTest {
     @Test
     public void testWriteRemovesEmptyLastLine() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
+        final LineFragmentOutputStream os = createTestOutputStream(list);
 
         write(os, "Hello\n");
         assertThat(list).isEqualTo(singletonList(new Line()));
@@ -93,8 +92,8 @@ public class LineFragmentOutputStreamTest {
     @Test
     public void testManyStreamsLinkedToOneList() throws IOException {
         final ObservableList<Line> list = observableArrayList();
-        final LineFragmentOutputStream<Line, Fragment> os1 = createTestOutputStream(list);
-        final LineFragmentOutputStream<Line, Fragment> os2 = createTestOutputStream(list);
+        final LineFragmentOutputStream os1 = createTestOutputStream(list);
+        final LineFragmentOutputStream os2 = createTestOutputStream(list);
 
         write(os1, "Foo");
         assertThat(list).isEqualTo(singletonList(new Line()));
@@ -110,11 +109,11 @@ public class LineFragmentOutputStreamTest {
         assertThat(list).isEqualTo(singletonList(new Line(new Fragment("Foo"), new Fragment("Bar"))));
     }
 
-    private LineFragmentOutputStream<Line, Fragment> createTestOutputStream(ObservableList<Line> list) {
-        return new LineFragmentOutputStream<>(list, new TestAdapter(list));
+    private LineFragmentOutputStream createTestOutputStream(ObservableList<Line> list) {
+        return new LineFragmentOutputStream(list, new TestAdapter(list));
     }
 
-    private void write(LineFragmentOutputStream<Line, Fragment> os, String string) {
+    private void write(LineFragmentOutputStream os, String string) {
         try {
             os.write(string.getBytes());
         } catch (IOException e) {
@@ -142,6 +141,5 @@ public class LineFragmentOutputStreamTest {
         public void removeLineFromList(Line line) {
             list.remove(line);
         }
-
     }
 }
