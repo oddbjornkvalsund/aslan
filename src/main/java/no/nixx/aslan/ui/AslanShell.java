@@ -1,5 +1,6 @@
 package no.nixx.aslan.ui;
 
+import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -88,16 +89,13 @@ public class AslanShell extends VBox {
     public AslanShell() {
         // Prompt
         prompt = new Label();
-        // TODO: Messy, re-think this whole concept
-        runLater(() -> setLabelFromPath(prompt, executionContextFactory.workingDirectoryProperty().get().asPath()));
-        executionContextFactory.workingDirectoryProperty().addListener((observable, oldValue, newValue) -> {
-            runLater(() -> setLabelFromPath(prompt, newValue.asPath()));
-        });
+        prompt.textProperty().bind(Bindings.concat(executionContextFactory.workingDirectoryBasenameProperty()).concat("> "));
+        undecorate(prompt);
 
         // Input
         input = new TextField();
-        undecorate(input);
         input.setOnKeyPressed(this::handleKeyPressed);
+        undecorate(input);
         runLater(input::requestFocus);
         inputBox = new InputBox(prompt, input);
 
@@ -199,14 +197,6 @@ public class AslanShell extends VBox {
 
         VBox.setVgrow(buffer, ALWAYS);
         getChildren().add(buffer);
-    }
-
-    private void setLabelFromPath(Label label, Path path) {
-        if (path.getNameCount() == 0) {
-            label.setText(path.toString() + "> ");
-        } else {
-            label.setText(path.getName(path.getNameCount() - 1).toString() + "> ");
-        }
     }
 
     private void executeCommand(ActionEvent actionEvent) {

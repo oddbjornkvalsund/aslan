@@ -1,6 +1,9 @@
 package no.nixx.aslan.ui;
 
+import javafx.beans.property.Property;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableMap;
 import no.nixx.aslan.api.ExecutionContext;
@@ -10,23 +13,35 @@ import no.nixx.aslan.core.ShellUtilExecutionContext;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static javafx.application.Platform.runLater;
 import static no.nixx.aslan.core.utils.Preconditions.checkNotNull;
 
 public class ObservableExecutionContextFactory implements ExecutionContextFactory {
 
     private final SimpleObjectProperty<WorkingDirectory> workingDirectory;
+    private final StringProperty workingDirectoryBasename = new SimpleStringProperty();
     private final ObservableMap<String, String> variables = FXCollections.observableHashMap();
 
     public ObservableExecutionContextFactory(WorkingDirectory workingDirectory) {
         this.workingDirectory = new SimpleObjectProperty<>(workingDirectory);
+        this.workingDirectoryBasename.set(getBasename(workingDirectory));
+        this.workingDirectory.addListener((observable, oldValue, newValue) -> {
+            runLater(() -> workingDirectoryBasename.set(getBasename(newValue)));
+        });
+
     }
 
     public SimpleObjectProperty<WorkingDirectory> workingDirectoryProperty() {
         return workingDirectory;
+    }
+
+    public Property<String> workingDirectoryBasenameProperty() {
+        return workingDirectoryBasename;
     }
 
     public ObservableMap<String, String> variablesProperty() {
@@ -50,6 +65,19 @@ public class ObservableExecutionContextFactory implements ExecutionContextFactor
         final ArrayList<String> variableList = new ArrayList<>(variables.keySet());
         Collections.sort(variableList);
         return variableList;
+    }
+
+    private String getBasename(WorkingDirectory workingDirectory) {
+        if (workingDirectory == null) {
+            return null;
+        } else {
+            final Path path = workingDirectory.asPath();
+            if (path.getNameCount() == 0) {
+                return path.toString();
+            } else {
+                return path.getName(path.getNameCount() - 1).toString();
+            }
+        }
     }
 
     private void setVariable(String name, String value) {
