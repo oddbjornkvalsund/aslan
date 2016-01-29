@@ -5,6 +5,7 @@ import java.util.List;
 
 import static no.nixx.aslan.core.utils.ListUtils.firstOf;
 
+@SuppressWarnings("unused")
 public class StringUtils {
     public static String removeTrailingNewlines(String string) {
         return string.replaceAll("[\r\n]+$", "");
@@ -13,7 +14,7 @@ public class StringUtils {
     public static String removeTrailingSpaces(String string) {
         return string.replaceAll("\\s+$", "");
     }
-    
+
     public static String join(Iterable<?> elements, String separator) {
         final StringBuilder sb = new StringBuilder();
         final Iterator<?> iterator = elements.iterator();
@@ -52,25 +53,14 @@ public class StringUtils {
     }
 
     public static boolean inSingleQuotes(String s) {
-        boolean inSingleQuotes = false;
-        boolean inDoubleQuotes = false;
-
-        for (char c : s.toCharArray()) {
-            if (c == '\'') {
-                if (!inDoubleQuotes) {
-                    inSingleQuotes = !inSingleQuotes;
-                }
-            } else if (c == '\"') {
-                if (!inSingleQuotes) {
-                    inDoubleQuotes = !inDoubleQuotes;
-                }
-            }
-        }
-
-        return inSingleQuotes;
+        return getQuoteState(s).inSingleQuotes;
     }
 
     public static boolean inDoubleQuotes(String s) {
+        return getQuoteState(s).inDoubleQuotes;
+    }
+
+    private static QuoteState getQuoteState(String s) {
         boolean inSingleQuotes = false;
         boolean inDoubleQuotes = false;
 
@@ -86,7 +76,7 @@ public class StringUtils {
             }
         }
 
-        return inDoubleQuotes;
+        return new QuoteState(inSingleQuotes, inDoubleQuotes);
     }
 
     public static boolean containsWhiteSpace(String s) {
@@ -106,4 +96,14 @@ public class StringUtils {
 
 class MutableInteger {
     public int value = 0;
+}
+
+class QuoteState {
+    public final boolean inSingleQuotes;
+    public final boolean inDoubleQuotes;
+
+    QuoteState(boolean inSingleQuotes, boolean inDoubleQuotes) {
+        this.inSingleQuotes = inSingleQuotes;
+        this.inDoubleQuotes = inDoubleQuotes;
+    }
 }
