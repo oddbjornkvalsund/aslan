@@ -1,7 +1,6 @@
 package no.nixx.aslan.ui.component.linefragment;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +22,7 @@ public class LineFragmentOutputStream extends ByteArrayOutputStream {
     }
 
     @Override
-    public void flush() throws IOException {
+    public void flush() {
         final List<Line> newLines = new ArrayList<>();
         Line currentLine = lastOf(list);
 
@@ -66,10 +65,7 @@ public class LineFragmentOutputStream extends ByteArrayOutputStream {
     }
 
     private void removeLastLineIfEmpty() {
-        final Line lastLine = lastOf(list);
-        if (lineIsEmpty(lastLine)) {
-            removeLineFromList(lastLine);
-        }
+        adapter.removeLastLineIfEmpty();
     }
 
     private void addFragmentToLine(Fragment fragment, Line line) {
@@ -78,14 +74,6 @@ public class LineFragmentOutputStream extends ByteArrayOutputStream {
 
     private void addLinesToList(List<Line> lines) {
         adapter.addLinesToList(lines);
-    }
-
-    private void removeLineFromList(Line line) {
-        adapter.removeLineFromList(line);
-    }
-
-    private boolean lineIsEmpty(Line line) {
-        return adapter.lineIsEmpty(line);
     }
 
     private boolean fragmentIsEmpty(Fragment fragment) {
@@ -123,6 +111,6 @@ public class LineFragmentOutputStream extends ByteArrayOutputStream {
 
         void addLinesToList(List<Line> lines);
 
-        void removeLineFromList(Line line);
+        void removeLastLineIfEmpty();
     }
 }

@@ -5,6 +5,7 @@ import javafx.scene.paint.Color;
 import java.util.List;
 
 import static javafx.application.Platform.runLater;
+import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 
 public class LineFragmentAdapter implements LineFragmentOutputStream.Adapter {
     protected final List<Line> list;
@@ -31,7 +32,12 @@ public class LineFragmentAdapter implements LineFragmentOutputStream.Adapter {
     }
 
     @Override
-    public void removeLineFromList(Line line) {
-        runLater(() -> list.remove(line));
+    public void removeLastLineIfEmpty() {
+        runLater(() -> {
+            final Line lastLine = lastOf(list);
+            if (lineIsEmpty(lastLine)) {
+                list.remove(lastLine);
+            }
+        });
     }
 }

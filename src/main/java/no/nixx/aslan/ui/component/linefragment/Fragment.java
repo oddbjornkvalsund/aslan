@@ -42,4 +42,12 @@ public class Fragment {
         result = 31 * result + (color != null ? color.hashCode() : 0);
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "Fragment{" +
+                "text='" + text + '\'' +
+                ", color=" + color +
+                '}';
+    }
 }

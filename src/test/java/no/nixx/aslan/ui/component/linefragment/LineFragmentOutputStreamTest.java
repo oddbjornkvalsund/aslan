@@ -10,6 +10,7 @@ import java.util.List;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static javafx.collections.FXCollections.observableArrayList;
+import static no.nixx.aslan.core.utils.ListUtils.lastOf;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class LineFragmentOutputStreamTest {
@@ -138,8 +139,11 @@ public class LineFragmentOutputStreamTest {
         }
 
         @Override
-        public void removeLineFromList(Line line) {
-            list.remove(line);
+        public void removeLastLineIfEmpty() {
+            final Line lastLine = lastOf(list);
+            if (lineIsEmpty(lastLine)) {
+                list.remove(lastLine);
+            }
         }
     }
 }
