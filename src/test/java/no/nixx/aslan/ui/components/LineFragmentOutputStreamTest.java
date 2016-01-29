@@ -1,11 +1,10 @@
 package no.nixx.aslan.ui.components;
 
 import javafx.collections.ObservableList;
+import javafx.scene.paint.Color;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Arrays.asList;
@@ -31,7 +30,7 @@ public class LineFragmentOutputStreamTest {
         final ObservableList<Line> list = observableArrayList();
         final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
 
-        os.write("Hello");
+        write(os, "Hello");
         assertThat(list).isEqualTo(singletonList(new Line()));
         os.flush();
         assertThat(list).isEqualTo(singletonList(new Line(new Fragment("Hello"))));
@@ -44,9 +43,9 @@ public class LineFragmentOutputStreamTest {
         final ObservableList<Line> list = observableArrayList();
         final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
 
-        os.write("Hello");
+        write(os, "Hello");
         assertThat(list).isEqualTo(singletonList(new Line()));
-        os.write("Hello");
+        write(os, "Hello");
         assertThat(list).isEqualTo(singletonList(new Line()));
         os.flush();
         assertThat(list).isEqualTo(singletonList(new Line(new Fragment("HelloHello"))));
@@ -59,9 +58,9 @@ public class LineFragmentOutputStreamTest {
         final ObservableList<Line> list = observableArrayList();
         final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
 
-        os.write("Hello");
+        write(os, "Hello");
         assertThat(list).isEqualTo(singletonList(new Line()));
-        os.write("\n");
+        write(os, "\n");
         assertThat(list).isEqualTo(singletonList(new Line()));
         os.flush();
         assertThat(list).isEqualTo(asList(new Line(new Fragment("Hello")), new Line()));
@@ -72,7 +71,8 @@ public class LineFragmentOutputStreamTest {
         final ObservableList<Line> list = observableArrayList();
         final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
 
-        os.write("Hello\r\n");
+
+        write(os, "Hello\r\n");
         os.flush();
         assertThat(list).isEqualTo(asList(new Line(new Fragment("Hello")), new Line()));
     }
@@ -82,7 +82,7 @@ public class LineFragmentOutputStreamTest {
         final ObservableList<Line> list = observableArrayList();
         final LineFragmentOutputStream<Line, Fragment> os = createTestOutputStream(list);
 
-        os.write("Hello\n");
+        write(os, "Hello\n");
         assertThat(list).isEqualTo(singletonList(new Line()));
         os.flush();
         assertThat(list).isEqualTo(asList(new Line(new Fragment("Hello")), new Line()));
@@ -96,9 +96,9 @@ public class LineFragmentOutputStreamTest {
         final LineFragmentOutputStream<Line, Fragment> os1 = createTestOutputStream(list);
         final LineFragmentOutputStream<Line, Fragment> os2 = createTestOutputStream(list);
 
-        os1.write("Foo");
+        write(os1, "Foo");
         assertThat(list).isEqualTo(singletonList(new Line()));
-        os2.write("Bar");
+        write(os2, "Bar");
         assertThat(list).isEqualTo(singletonList(new Line()));
         os1.flush();
         assertThat(list).isEqualTo(singletonList(new Line(new Fragment("Foo"))));
@@ -114,68 +114,18 @@ public class LineFragmentOutputStreamTest {
         return new LineFragmentOutputStream<>(list, new TestAdapter(list));
     }
 
-    private static class Line extends ArrayList<Fragment> {
-
-        public Line(Fragment... fragments) {
-            Collections.addAll(this, fragments);
+    private void write(LineFragmentOutputStream<Line, Fragment> os, String string) {
+        try {
+            os.write(string.getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private static class Fragment {
-
-        private String text;
-
-        public Fragment(String text) {
-            this.text = text;
-        }
-
-        public String getText() {
-            return text;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            Fragment that = (Fragment) o;
-
-            return text != null ? text.equals(that.text) : that.text == null;
-
-        }
-
-        @Override
-        public int hashCode() {
-            return text != null ? text.hashCode() : 0;
-        }
-    }
-
-    private static class TestAdapter implements LineFragmentOutputStream.Adapter<Line, Fragment> {
-
-        private final List<Line> list;
+    private static class TestAdapter extends LineFragmentAdapter {
 
         public TestAdapter(List<Line> list) {
-            this.list = list;
-        }
-
-        @Override
-        public Line createLine() {
-            return new Line();
-        }
-
-        @Override
-        public Fragment createFragment(String string) {
-            return new Fragment(string);
-        }
-
-        @Override
-        public boolean lineIsEmpty(Line line) {
-            return line.isEmpty();
-        }
-
-        @Override
-        public boolean fragmentIsEmpty(Fragment fragment) {
-            return fragment.getText().isEmpty();
+            super(list, Color.BLACK);
         }
 
         @Override
@@ -192,5 +142,6 @@ public class LineFragmentOutputStreamTest {
         public void removeLineFromList(Line line) {
             list.remove(line);
         }
+
     }
 }

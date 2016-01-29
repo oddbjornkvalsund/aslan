@@ -22,15 +22,6 @@ public class LineFragmentOutputStream<Line, Fragment> extends ByteArrayOutputStr
         }
     }
 
-    // Only for test
-    public void write(String string) {
-        try {
-            write(string.getBytes());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     @Override
     public void flush() throws IOException {
         final List<Line> newLines = new ArrayList<>();

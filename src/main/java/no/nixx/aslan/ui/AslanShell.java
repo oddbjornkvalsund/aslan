@@ -27,6 +27,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import no.nixx.aslan.core.ExecutableLocatorImpl;
 import no.nixx.aslan.core.PipelineExecutorImpl;
 import no.nixx.aslan.core.WorkingDirectoryImpl;
@@ -36,9 +37,11 @@ import no.nixx.aslan.pipeline.ParseException;
 import no.nixx.aslan.pipeline.PipelineParser;
 import no.nixx.aslan.pipeline.model.Pipeline;
 import no.nixx.aslan.ui.components.BufferItem;
+import no.nixx.aslan.ui.components.Fragment;
+import no.nixx.aslan.ui.components.Line;
+import no.nixx.aslan.ui.components.LineFragmentAdapter;
 import no.nixx.aslan.ui.components.LineFragmentOutputStream;
 import no.nixx.aslan.ui.components.ObservableCompositeList;
-import no.nixx.aslan.ui.components.TextFlowBufferItem;
 import org.fxmisc.flowless.Cell;
 import org.fxmisc.flowless.VirtualFlow;
 
@@ -48,11 +51,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static java.lang.System.currentTimeMillis;
+import static java.util.stream.Collectors.toList;
 import static javafx.application.Platform.runLater;
 import static javafx.collections.FXCollections.observableArrayList;
 import static javafx.scene.input.KeyCode.L;
@@ -65,15 +68,13 @@ import static org.fxmisc.flowless.VirtualFlow.createVertical;
 
 public class AslanShell extends VBox {
 
-    // TODO: Remove before commiting
-    private static int scrollToInputInvocationCount = 0;
     private final Background transparentBackground = new Background(new BackgroundFill(Color.TRANSPARENT, null, null));
     private final Border transparentBorder = new Border(new BorderStroke(Color.TRANSPARENT, BorderStrokeStyle.NONE, CornerRadii.EMPTY, BorderWidths.EMPTY));
     private final InputBox inputBox;
     private final Label prompt;
     private final TextField input;
     private final VirtualFlow<BufferItem, Cell<BufferItem, Node>> buffer;
-    private final ObservableList<TextFlowBufferItem> bufferItems;
+    private final ObservableList<Line> bufferItems;
     private final ObservableList<BufferItem> bufferItemsWithInput;
     private final ExecutorService threadPool = Executors.newFixedThreadPool(8);
     private final PipelineParser parser = new PipelineParser();
@@ -104,6 +105,7 @@ public class AslanShell extends VBox {
         buffer = createVertical(bufferItemsWithInput, bufferItem -> new Cell<BufferItem, Node>() {
 
             private Node node;
+            private TextFlow textFlow = new TextFlow();
 
             {
                 updateItem(bufferItem);
@@ -122,15 +124,20 @@ public class AslanShell extends VBox {
             @Override
             public void updateItem(BufferItem item) {
                 if (item == inputBox) {
+                    textFlow.getChildren().clear();
                     node = inputBox;
                     inputBoxCell = this;
-                } else if (item instanceof TextFlowBufferItem) {
-                    // Keeping all the items in the list as TextFlow+Text seems to be heavy on memory
-                    // Consider storing the items as List<String>+String and reusing TextFlow+Text from a object pool
-                    node = (TextFlowBufferItem) item;
-                } else {
-                    throw new RuntimeException("WTF?");
+                } else if (item instanceof Line) {
+                    final Line line = (Line) item;
+                    textFlow.getChildren().setAll(line.stream().map(this::createText).collect(toList()));
+                    node = textFlow;
                 }
+            }
+
+            private Text createText(Fragment fragment) {
+                final Text text = new Text(fragment.getText());
+                text.setFill(fragment.getColor());
+                return text;
             }
 
             @Override
@@ -162,7 +169,6 @@ public class AslanShell extends VBox {
                 }
 
                 if (!keyEvent.isConsumed()) {
-                    System.out.println("Redirecting to TextField: " + keyEvent);
                     scrollToInput();
                     focusTextFieldAndFireKeyEvent(input, scene, keyEvent);
                 }
@@ -215,8 +221,8 @@ public class AslanShell extends VBox {
         input.setText("");
 
         final InputStream in = new ByteArrayInputStream(new byte[0]);
-        final OutputStream out = new LineFragmentOutputStream<>(bufferItems, new TextFlowLineFragmentAdapter(bufferItems, BLACK));
-        final OutputStream err = new LineFragmentOutputStream<>(bufferItems, new TextFlowLineFragmentAdapter(bufferItems, RED));
+        final OutputStream out = new LineFragmentOutputStream<>(bufferItems, new LineFragmentAdapter(bufferItems, BLACK));
+        final OutputStream err = new LineFragmentOutputStream<>(bufferItems, new LineFragmentAdapter(bufferItems, RED));
 
         final PipelineExecutorImpl pipelineExecutor = new PipelineExecutorImpl(threadPool, new ExecutableLocatorImpl(), executionContextFactory, in, out, err);
 
@@ -241,10 +247,10 @@ public class AslanShell extends VBox {
     }
 
     private void addPromptAndCommandToBuffer(String command) {
-        final Text commandText = new Text(prompt.getText() + command);
-        commandText.setFill(BLACK);
-        bufferItems.add(new TextFlowBufferItem(commandText));
-        bufferItems.add(new TextFlowBufferItem());
+        bufferItems.addAll(
+                new Line(new Fragment(prompt.getText() + command, BLACK)),
+                new Line()
+        );
     }
 
     private void tabComplete() {
@@ -255,7 +261,7 @@ public class AslanShell extends VBox {
         final CompletionResult result = completor.getCompletions(command, tabPosition, new ExecutableLocatorImpl(), executionContextFactory.createExecutionContext());
 
         if (result.hasCompletionCandidates() && isDoubleTab()) {
-            bufferItems.add(new TextFlowBufferItem(new Text(join(result.completionCandidates, " ")))); // TODO: Manglar farge
+            bufferItems.add(new Line(new Fragment(join(result.completionCandidates, " "), BLACK)));
         }
 
         input.setText(result.text);
@@ -310,10 +316,7 @@ public class AslanShell extends VBox {
     }
 
     private void scrollToInput() {
-        runLater(() -> {
-            buffer.showAsLast(bufferItemsWithInput.indexOf(inputBox));
-            System.out.println("Scrolled: " + ++scrollToInputInvocationCount);
-        });
+        runLater(() -> buffer.showAsLast(bufferItemsWithInput.indexOf(inputBox)));
     }
 
     private void focusTextFieldAndFireKeyEvent(final TextField textField, final Scene scene, final KeyEvent keyEvent) {
@@ -356,68 +359,9 @@ public class AslanShell extends VBox {
 
 class InputBox extends HBox implements BufferItem {
 
-    @SuppressWarnings({"unused", "FieldCanBeLocal"})
-    private final Label prompt;
-    private final TextField input;
-
     public InputBox(Label prompt, TextField input) {
-        this.prompt = prompt;
-        this.input = input;
         HBox.setHgrow(prompt, ALWAYS);
         HBox.setHgrow(input, ALWAYS);
         getChildren().addAll(prompt, input);
-    }
-
-    @Override
-    public String getText() {
-        return input.getText();
-    }
-}
-
-// TODO: Extract to standalone class
-class TextFlowLineFragmentAdapter implements LineFragmentOutputStream.Adapter<TextFlowBufferItem, Text> {
-    private final List<TextFlowBufferItem> list;
-    private final Color color;
-
-    public TextFlowLineFragmentAdapter(List<TextFlowBufferItem> list, Color color) {
-        this.list = list;
-        this.color = color;
-    }
-
-    @Override
-    public TextFlowBufferItem createLine() {
-        return new TextFlowBufferItem();
-    }
-
-    @Override
-    public Text createFragment(String content) {
-        final Text text = new Text(content);
-        text.setFill(color);
-        return text;
-    }
-
-    @Override
-    public boolean lineIsEmpty(TextFlowBufferItem textFlow) {
-        return textFlow.getChildren().isEmpty();
-    }
-
-    @Override
-    public boolean fragmentIsEmpty(Text text) {
-        return text.getText().isEmpty();
-    }
-
-    @Override
-    public void addFragmentToLine(Text text, TextFlowBufferItem textFlow) {
-        runLater(() -> textFlow.getChildren().add(text));
-    }
-
-    @Override
-    public void addLinesToList(List<TextFlowBufferItem> textFlows) {
-        runLater(() -> list.addAll(textFlows));
-    }
-
-    @Override
-    public void removeLineFromList(TextFlowBufferItem textFlow) {
-        runLater(() -> list.remove(textFlow));
     }
 }
