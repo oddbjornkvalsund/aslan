@@ -68,8 +68,9 @@ import static org.fxmisc.flowless.VirtualFlow.createVertical;
 
 public class AslanShell extends VBox {
 
-    private final Background transparentBackground = new Background(new BackgroundFill(Color.TRANSPARENT, null, null));
-    private final Border transparentBorder = new Border(new BorderStroke(Color.TRANSPARENT, BorderStrokeStyle.NONE, CornerRadii.EMPTY, BorderWidths.EMPTY));
+    private final static Background transparentBackground = new Background(new BackgroundFill(Color.TRANSPARENT, null, null));
+    private final static Border transparentBorder = new Border(new BorderStroke(Color.TRANSPARENT, BorderStrokeStyle.NONE, CornerRadii.EMPTY, BorderWidths.EMPTY));
+
     private final InputBox inputBox;
     private final Label prompt;
     private final TextField input;
@@ -79,6 +80,7 @@ public class AslanShell extends VBox {
     private final ExecutorService threadPool = Executors.newFixedThreadPool(8);
     private final PipelineParser parser = new PipelineParser();
     private final ObservableExecutionContextFactory executionContextFactory = new ObservableExecutionContextFactory(new WorkingDirectoryImpl(System.getProperty("user.dir")));
+
     private Cell<BufferItem, Node> inputBoxCell;
     private long previousKeyTimestamp = Long.MIN_VALUE;
     private KeyCode previousKeyCode = KeyCode.UNDEFINED;
@@ -200,10 +202,10 @@ public class AslanShell extends VBox {
     }
 
     private void setLabelFromPath(Label label, Path path) {
-        if (path.getFileName() == null) {
-            label.setText(path + "> ");
+        if (path.getNameCount() == 0) {
+            label.setText(path.toString() + "> ");
         } else {
-            label.setText(path.getFileName() + "> ");
+            label.setText(path.getName(path.getNameCount() - 1).toString() + "> ");
         }
     }
 
